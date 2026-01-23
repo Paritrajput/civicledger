@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import { motion } from "framer-motion";
 
 export default function Page1() {
   const [issues2, setIssues2] = useState([]);
@@ -10,6 +11,7 @@ export default function Page1() {
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState(null);
   const [all, setAll] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
 
   // Get user location
@@ -23,7 +25,7 @@ export default function Page1() {
           });
         },
         () => console.error("Failed to get location"),
-        { enableHighAccuracy: true }
+        { enableHighAccuracy: true },
       );
     }
   }, []);
@@ -43,110 +45,148 @@ export default function Page1() {
     fetchIssues();
   }, []);
 
-  // Calculate distance (in km)
+  // Distance calculation
   const getDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
     const dLon = ((lon2 - lon1) * Math.PI) / 180;
     const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.sin(dLat / 2) ** 2 +
       Math.cos((lat1 * Math.PI) / 180) *
         Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+        Math.sin(dLon / 2) ** 2;
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
   };
 
-  // Filter issues within 5km
+  // Filter nearby issues
   useEffect(() => {
     if (userLocation && issues2.length > 0) {
-      const nearby = issues2.filter((contract) => {
-        const lat = contract.location?.lat;
-        const lng = contract.location?.lng;
-        if (lat && lng) {
-          const distance = getDistance(
-            userLocation.lat,
-            userLocation.lng,
-            lat,
-            lng
-          );
-          return distance <= 10;
-        }
-        return false;
+      const nearby = issues2.filter((issue) => {
+        const { lat, lng } = issue.location || {};
+        if (!lat || !lng) return false;
+        return getDistance(userLocation.lat, userLocation.lng, lat, lng) <= 10;
       });
       setFilteredIssues(nearby);
     }
   }, [userLocation, issues2]);
 
+  // Search filter
+  const getDisplayedIssues = () => {
+    const baseIssues = all ? issues2 : filteredIssues;
+    if (!searchQuery.trim()) return baseIssues;
+
+    return baseIssues.filter(
+      (issue) =>
+        issue.issue_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        issue.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        issue.placename?.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  };
+
   return (
-    <div className="md:p-6 p-3 min-h-screen bg-[#060611] text-white overflow-y-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-        <h1 className="md:text-3xl text-2xl  font-bold text-teal-400 mb-4 sm:mb-0">
-          Reported Issues
-        </h1>
-        <select
-          value={all ? "all" : "nearby"}
-          onChange={(e) => setAll(e.target.value === "all")}
-          className="bg-gray-800 text-white border border-gray-600 rounded px-4 py-2"
+    <div className="relative min-h-screen text-white">
+      {/* FIXED BACKGROUND (does NOT scroll) */}
+      <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
+
+      {/* SCROLLABLE CONTENT */}
+      <div className="relative p-4 md:p-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <motion.h1
+            initial={{ opacity: 0, y: -15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-2xl md:text-3xl font-bold"
+          >
+            Reported Public Issues
+          </motion.h1>
+
+          <motion.select
+            whileHover={{ scale: 1.02 }}
+            value={all ? "all" : "nearby"}
+            onChange={(e) => setAll(e.target.value === "all")}
+            className="bg-[#0f1224] text-white border border-gray-700 rounded-xl px-4 py-2 focus:outline-none focus:border-gray-500 transition"
+          >
+            <option value="all">All Issues</option>
+            <option value="nearby">Nearby Issues</option>
+          </motion.select>
+        </div>
+
+        {/* Search Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
         >
-          <option value="all">All Issues</option>
-          <option value="nearby">Nearby Issues</option>
-        </select>
-      </div>
+          <input
+            type="text"
+            placeholder="Search issues by type, description, or location..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#0f1224] text-white border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:border-gray-500 transition placeholder-gray-500"
+          />
+        </motion.div>
 
-      <div className="grid gap-6">
-        {loading ? (
-          Array.from({ length: 4 }).map((_, index) => (
-            <div
-              key={index}
-              className="bg-gray-900 p-5 rounded-lg shadow-lg border border-gray-700 animate-pulse"
-            >
-              <div className="h-6 bg-gray-700 rounded w-3/4 mb-4"></div>
-              <div className="h-4 bg-gray-700 rounded w-1/2 mb-2"></div>
-              <div className="h-4 bg-gray-700 rounded w-1/4 mb-2"></div>
-              <div className="h-10 bg-gray-700 rounded mt-4"></div>
-            </div>
-          ))
-        ) : (all ? issues2 : filteredIssues)?.length > 0 ? (
-          (all ? issues2 : filteredIssues).map((issue) => (
-            <div
-              key={issue._id}
-              className="bg-gray-900 p-5 rounded-lg shadow-lg border border-gray-700"
-            >
-              <h2 className="text-xl font-semibold text-teal-400">
-                {issue.issue_type}
-              </h2>
-              <p className="text-gray-300 max-md:hidden">{issue.description}</p>
-              <p className="text-gray-300">
-                <strong className="text-teal-400">Location:</strong>{" "}
-                {issue.placename}
-              </p>
-
-              <div className="flex flex-wrap items-center gap-4 mt-0">
-                <p className="max-md:hidden">
-                  <strong className="text-teal-400">Votes:</strong> Approvals:{" "}
-                  {issue.approval}, Denials: {issue.denial}
-                </p>
-                <p>
-                  <strong className="text-teal-400">Date:</strong>{" "}
-                  {issue.date_of_complaint}
-                </p>
-              </div>
-
-              <button
-                onClick={() =>
-                  router.push(`/public-sec/people-voting/${issue._id}`)
-                }
-                className="mt-3 px-4 py-2 bg-teal-500 text-black font-medium rounded-lg hover:bg-teal-400 transition"
+        {/* Issues List */}
+        <div className="grid gap-6">
+          {loading ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl border border-gray-800 animate-pulse"
               >
-                View Details
-              </button>
-            </div>
-          ))
-        ) : (
-          <p className="text-gray-400 text-center">No issues found.</p>
-        )}
+                <div className="h-6 bg-gray-700 rounded-lg w-2/3 mb-4" />
+                <div className="h-4 bg-gray-700 rounded-lg w-1/2 mb-2" />
+                <div className="h-4 bg-gray-700 rounded-lg w-1/3 mb-4" />
+                <div className="h-10 bg-gray-700 rounded-xl w-32" />
+              </div>
+            ))
+          ) : getDisplayedIssues()?.length > 0 ? (
+            getDisplayedIssues().map((issue, idx) => (
+              <motion.div
+                key={issue._id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.04 }}
+                whileHover={{ y: -4 }}
+                className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl border border-gray-800 hover:border-gray-600 transition"
+              >
+                <h2 className="text-lg md:text-xl font-semibold">
+                  {issue.issue_type}
+                </h2>
+
+                <p className="text-gray-300 mt-2 max-md:hidden">
+                  {issue.description}
+                </p>
+
+                <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-400 mt-3">
+                  <span>
+                    <strong>Location:</strong> {issue.placename}
+                  </span>
+                  <span>
+                    <strong>Date:</strong> {issue.date_of_complaint}
+                  </span>
+                  <span className="max-md:hidden">
+                    <strong>Votes:</strong> 👍 {issue.approval} / 👎{" "}
+                    {issue.denial}
+                  </span>
+                </div>
+
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() =>
+                    router.push(`/public-sec/people-voting/${issue._id}`)
+                  }
+                  className="mt-5 px-5 py-2 bg-white text-black font-semibold rounded-xl transition"
+                >
+                  View Details
+                </motion.button>
+              </motion.div>
+            ))
+          ) : (
+            <p className="text-gray-400 text-center py-10">No issues found.</p>
+          )}
+        </div>
       </div>
     </div>
   );

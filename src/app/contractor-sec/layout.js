@@ -7,10 +7,10 @@ import { useGovUser } from "@/Context/govUser";
 export default function ContractorLayout({ children }) {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const { user, loading } = useGovUser(); // <-- make sure loading is available in your context
+  const { user, loading } = useGovUser(); 
 
   useEffect(() => {
-    // Wait until loading is done
+  
     if (!loading) {
       if (user?.role === "contractor") {
         console.log(user.role)
@@ -19,7 +19,7 @@ export default function ContractorLayout({ children }) {
         router.push("/authenticate/contractor/login");
       }
     }
-  }, [user, loading]); // <-- run effect when user or loading changes
+  }, [user, loading]); 
 
   if (loading) {
     return <div className="text-white p-4">Loading...</div>;

@@ -1,4 +1,4 @@
-import { issueDetail } from "@/app/gov-sec/issue-details/page";
+
 import mongoose from "mongoose";
 
 const MilestoneSchema = new mongoose.Schema({
@@ -13,6 +13,7 @@ const MilestoneSchema = new mongoose.Schema({
   approvalVotes: { type: Number, default: 0 },
   rejectionVotes: { type: Number, default: 0 },
 });
+
 
 const ContractSchema = new mongoose.Schema({
   contractId: String,

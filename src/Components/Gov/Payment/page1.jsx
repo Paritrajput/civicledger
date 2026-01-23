@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 
 const AdminPaymentPage = (contract) => {
   const contractData = contract.contract;
@@ -57,65 +58,96 @@ const AdminPaymentPage = (contract) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#060611] text-white p-4 sm:p-6">
-      <h1 className="text-2xl sm:text-3xl font-bold text-center mb-6">
+    <div className="relative min-h-screen text-white p-4 sm:p-6">
+      <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
+      <motion.h1
+        initial={{ opacity: 0, y: -15 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-2xl sm:text-3xl font-bold text-center mb-6"
+      >
         Admin Payment Dashboard
-      </h1>
+      </motion.h1>
 
       {loading ? (
-        <p className="text-center text-gray-400">Loading payments...</p>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center text-gray-400 bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl border border-gray-800"
+        >
+          Loading payments...
+        </motion.div>
       ) : error ? (
-        <p className="text-center text-red-500">{error}</p>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center text-red-500 bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl border border-gray-800"
+        >
+          {error}
+        </motion.div>
       ) : requestedPayments.filter((p) => p.status === "Pending").length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {requestedPayments
             .filter((p) => p.status === "Pending")
-            .map((payment) => (
-              <div
+            .map((payment, index) => (
+              <motion.div
                 key={payment._id}
-                className="bg-gray-900 p-4 sm:p-6 rounded-lg shadow-md"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                whileHover={{ y: -4 }}
+                className="bg-[#14162d8a] backdrop-blur-xl p-4 sm:p-6 rounded-2xl shadow-md border border-gray-800 hover:border-gray-600 transition"
               >
-                <p className="text-sm sm:text-lg text-teal-400 break-words">
+                <p className="text-sm sm:text-lg text-white font-semibold break-words">
                   ID: {payment.contractId}
                 </p>
-                <p className="text-gray-400 text-sm sm:text-base">
+                <p className="text-gray-300 text-sm sm:text-base mt-2">
                   Bid Amount: ₹{payment.bidAmount}
                 </p>
-                <p className="text-gray-400 text-sm sm:text-base">
+                <p className="text-gray-300 text-sm sm:text-base">
                   Requested: ₹{payment.paymentMade}
                 </p>
-                <p className="text-gray-400 text-sm sm:text-base">
+                <p className="text-gray-300 text-sm sm:text-base">
                   Reason: {payment.reason}
                 </p>
-                <p className="text-gray-400 text-sm sm:text-base">
-                  Votes - Approvals: {payment.approvalVotes?.length}, Rejections:{" "}
-                  {payment.rejectionVotes?.length}
+                <p className="text-gray-300 text-sm sm:text-base">
+                  Votes - Approvals: {payment.approvalVotes?.length},
+                  Rejections: {payment.rejectionVotes?.length}
                 </p>
-                <p className="text-yellow-400 font-semibold mt-2 text-sm sm:text-base">
+                <p className="text-gray-400 font-semibold mt-3 text-sm sm:text-base">
                   Status: {payment.status}
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-2 justify-between mt-4">
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => handleAction("Approve", payment._id)}
                     disabled={loading}
-                    className="w-full sm:w-auto px-4 py-2 bg-green-500 hover:bg-green-600 rounded-md"
+                    className="w-full sm:w-auto px-4 py-2 bg-white text-black rounded-xl font-semibold hover:shadow-lg transition disabled:opacity-50"
                   >
                     {loading ? "Processing..." : "Approve"}
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => handleAction("Deny", payment._id)}
                     disabled={loading}
-                    className="w-full sm:w-auto px-4 py-2 bg-red-500 hover:bg-red-600 rounded-md"
+                    className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-xl font-semibold hover:shadow-lg transition disabled:opacity-50"
                   >
                     {loading ? "Processing..." : "Deny"}
-                  </button>
+                  </motion.button>
                 </div>
-              </div>
+              </motion.div>
             ))}
         </div>
       ) : (
-        <p className="text-center text-gray-400">No pending payments found.</p>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center text-gray-400 bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl border border-gray-800"
+        >
+          No pending payments found.
+        </motion.div>
       )}
     </div>
   );

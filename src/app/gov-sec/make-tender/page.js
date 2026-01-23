@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { BrowserProvider, Contract } from "ethers";
 import Tender from "@/contracts/TenderCreation";
 import { useGovUser } from "@/Context/govUser";
+import { motion } from "framer-motion";
 
 export default function Page() {
   return (
@@ -66,10 +67,10 @@ export const MakeTender = () => {
       const contract = new Contract(contractAddress, TenderABI, signer);
 
       const deadline = Math.floor(
-        new Date(formData.bidClosingDate).getTime() / 1000
+        new Date(formData.bidClosingDate).getTime() / 1000,
       );
       const starting = Math.floor(
-        new Date(formData.bidOpeningDate).getTime() / 1000
+        new Date(formData.bidOpeningDate).getTime() / 1000,
       );
 
       const tx = await contract.createTender(
@@ -81,7 +82,7 @@ export const MakeTender = () => {
         starting,
         deadline,
         formData.location,
-        creator?.id
+        creator?.id,
       );
 
       await tx.wait();
@@ -104,15 +105,14 @@ export const MakeTender = () => {
       //     continue;
       //   }
       // }
-      
+
       // if (!tempTenderId) {
       //   throw new Error("Tender ID not found in blockchain event logs");
       // }
 
       // console.log(tempTenderId)
-      
+
       // setBlockchainTenderId(tempTenderId);
-      
 
       // Store in MongoDB
       const mongoResponse = await fetch("/api/tender/create-tender", {
@@ -153,7 +153,8 @@ export const MakeTender = () => {
 
   if (!parsedIssue) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#060611] text-white">
+      <div className="relative min-h-screen text-white flex items-center justify-center">
+        <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
         <p className="text-red-500 text-lg">Error: Issue details not found.</p>
       </div>
     );
@@ -168,89 +169,120 @@ export const MakeTender = () => {
   };
 
   return (
-    <div className="flex flex-col items-center bg-[#060611] text-white p-6 min-h-screen">
-      {/* Issue Details */}
-      <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-full max-w-lg">
-        <h2 className="text-2xl font-bold text-teal-400">Issue Details</h2>
-        <p className="mt-2">
-          <strong>Type:</strong> {parsedIssue.issue_type}
-        </p>
-        <p>
-          <strong>Description:</strong> {parsedIssue.description}
-        </p>
-        <p className="mt-2">
-          <strong>Location:</strong> {parsedIssue.placename}
-        </p>
-        {parsedIssue.image && (
-          <img
-            src={parsedIssue.image}
-            alt="Issue"
-            className="w-full h-48 object-cover mt-3 rounded-md shadow-md"
-          />
-        )}
-        <p className="mt-2">
-          <strong>Date:</strong> {parsedIssue.date_of_complaint}
-        </p>
-      </div>
+    <div className="relative min-h-screen text-white">
+      <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
+      <div className="relative md:p-6 p-3 max-w-3xl mx-auto">
+        {/* Issue Details */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl shadow-lg w-full mb-8 border border-gray-800"
+        >
+          <h2 className="text-2xl font-bold mb-4">Issue Details</h2>
+          <div className="space-y-3">
+            <p className="text-gray-300">
+              <strong className="text-white">Type:</strong>{" "}
+              {parsedIssue.issue_type}
+            </p>
+            <p className="text-gray-300">
+              <strong className="text-white">Description:</strong>{" "}
+              {parsedIssue.description}
+            </p>
+            <p className="text-gray-300">
+              <strong className="text-white">Location:</strong>{" "}
+              {parsedIssue.placename}
+            </p>
+          </div>
+          {parsedIssue.image && (
+            <motion.img
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              src={parsedIssue.image}
+              alt="Issue"
+              className="w-full h-48 object-cover mt-4 rounded-xl shadow-md"
+            />
+          )}
+          <p className="text-gray-300 mt-4">
+            <strong className="text-white">Date:</strong>{" "}
+            {parsedIssue.date_of_complaint}
+          </p>
+        </motion.div>
 
-      {/* Tender Form */}
-      <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-full max-w-lg mt-6">
-        <h2 className="text-2xl font-bold text-teal-400">
-          Enter Tender Details
-        </h2>
+        {/* Tender Form */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl shadow-lg w-full border border-gray-800"
+        >
+          <h2 className="text-2xl font-bold mb-6">Enter Tender Details</h2>
 
-        <div className="grid gap-4">
-          {[
-            { label: "Tender Title", name: "title", type: "text" },
-            {
-              label: "Tender Description",
-              name: "description",
-              type: "textarea",
-            },
-            { label: "Category", name: "category", type: "text" },
-            { label: "Min Bid Amount", name: "minBidAmount", type: "number" },
-            { label: "Max Bid Amount", name: "maxBidAmount", type: "number" },
-            { label: "Bid Opening Date", name: "bidOpeningDate", type: "date" },
-            { label: "Bid Closing Date", name: "bidClosingDate", type: "date" },
-            { label: "Work Location", name: "location", type: "text" },
-          ].map(({ label, name, type }) => (
-            <div className="mt-2" key={name}>
-              <label className="block font-semibold text-gray-300">
-                {label}
-              </label>
-              {type === "textarea" ? (
-                <textarea
-                  name={name}
-                  value={formData[name]}
-                  onChange={handleChange}
-                  required
-                  className="w-full border border-gray-700 bg-gray-800 p-2 rounded-md text-white placeholder-gray-400 mt-1 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                />
-              ) : (
-                <input
-                  type={type}
-                  name={name}
-                  value={formData[name]}
-                  onChange={handleChange}
-                  required
-                  className="w-full border border-gray-700 bg-gray-800 p-2 rounded-md text-white placeholder-gray-400 mt-1 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                />
-              )}
-            </div>
-          ))}
+          <div className="grid gap-4">
+            {[
+              { label: "Tender Title", name: "title", type: "text" },
+              {
+                label: "Tender Description",
+                name: "description",
+                type: "textarea",
+              },
+              { label: "Category", name: "category", type: "text" },
+              { label: "Min Bid Amount", name: "minBidAmount", type: "number" },
+              { label: "Max Bid Amount", name: "maxBidAmount", type: "number" },
+              {
+                label: "Bid Opening Date",
+                name: "bidOpeningDate",
+                type: "date",
+              },
+              {
+                label: "Bid Closing Date",
+                name: "bidClosingDate",
+                type: "date",
+              },
+              { label: "Work Location", name: "location", type: "text" },
+            ].map(({ label, name, type }) => (
+              <motion.div
+                key={name}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.05 }}
+                className="mt-2"
+              >
+                <label className="block font-semibold text-gray-300 mb-2">
+                  {label}
+                </label>
+                {type === "textarea" ? (
+                  <textarea
+                    name={name}
+                    value={formData[name]}
+                    onChange={handleChange}
+                    required
+                    className="w-full border border-gray-700 bg-[#0f1224] p-3 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-gray-500 transition"
+                  />
+                ) : (
+                  <input
+                    type={type}
+                    name={name}
+                    value={formData[name]}
+                    onChange={handleChange}
+                    required
+                    className="w-full border border-gray-700 bg-[#0f1224] p-3 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-gray-500 transition"
+                  />
+                )}
+              </motion.div>
+            ))}
 
-          <button
-            type="submit"
-            onClick={submitTender}
-            className="bg-teal-400 text-black p-2 rounded-lg font-bold"
-            disabled={loading}
-          >
-            {loading ? "Creating Tender..." : "Submit Tender"}
-          </button>
-
-          {/* {success && <p className="text-green-500 mt-2">{success}</p>} */}
-          {/* {error && <p className="text-red-500 mt-2">{error}</p>} */}
-        </div>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.95 }}
+              type="submit"
+              onClick={submitTender}
+              className="bg-white text-black p-3 rounded-xl font-bold mt-6 hover:shadow-lg transition"
+              disabled={loading}
+            >
+              {loading ? "Creating Tender..." : "Submit Tender"}
+            </motion.button>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

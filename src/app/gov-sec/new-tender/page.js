@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { BrowserProvider, Contract } from "ethers";
 import Tender from "@/contracts/TenderCreation";
 import { useGovUser } from "@/Context/govUser";
+import { motion } from "framer-motion";
 
 export default function Page() {
   return (
@@ -65,10 +66,10 @@ export const MakeTender = () => {
       const contract = new Contract(contractAddress, TenderABI, signer);
 
       const deadline = Math.floor(
-        new Date(formData.bidClosingDate).getTime() / 1000
+        new Date(formData.bidClosingDate).getTime() / 1000,
       );
       const starting = Math.floor(
-        new Date(formData.bidOpeningDate).getTime() / 1000
+        new Date(formData.bidOpeningDate).getTime() / 1000,
       );
 
       const tx = await contract.createTender(
@@ -80,7 +81,7 @@ export const MakeTender = () => {
         starting,
         deadline,
         formData.location,
-        creator?.id
+        creator?.id,
       );
 
       await tx.wait();
@@ -121,8 +122,6 @@ export const MakeTender = () => {
       setLoading(false);
     }
   };
-
- 
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -208,133 +207,110 @@ export const MakeTender = () => {
   // };
 
   return (
-    <div className="flex flex-col items-center bg-[#060611] text-white md:p-6 p-3 min-h-screen">
-      <div className="md:text-3xl text-2xl font-bold text-teal-400 mb-4 text-center">
-        Create Tender
-      </div>
-      <div className="bg-gray-900 p-3 md:p-6 rounded-lg shadow-lg w-full max-w-lg mt-6">
-        <h2 className="text-2xl font-bold text-white">Enter Tender Details</h2>
+    <div className="relative min-h-screen text-white">
+      <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
+      <div className="relative md:p-6 p-3 max-w-2xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: -15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="md:text-3xl text-2xl font-bold mb-8 text-center"
+        >
+          Create Tender
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl shadow-lg w-full border border-gray-800"
+        >
+          <h2 className="text-2xl font-bold mb-6">Enter Tender Details</h2>
 
-        <div className="grid gap-4">
-          <div className="mt-2">
-            <label className="block font-semibold text-gray-300">
-              Tender Title
-            </label>
-            <input
-              type="text"
-              name="title"
-              placeholder="Tender Title"
-              value={formData.title}
-              onChange={handleChange}
-              required
-              className="w-full border border-gray-700 bg-gray-800 p-2 rounded-md text-white placeholder-gray-400 mt-1 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-            />
-          </div>
-          <div className="mt-2">
-            <label className="block font-semibold text-gray-300">
-              Tender Description
-            </label>
-            <textarea
-              name="description"
-              placeholder="Description"
-              value={formData.description}
-              onChange={handleChange}
-              required
-              className="w-full border border-gray-700 bg-gray-800 p-2 rounded-md text-white placeholder-gray-400 mt-1 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-            />
-          </div>
-          <div className="mt-2">
-            <label className="block font-semibold text-gray-300">
-              Category
-            </label>
-            <input
-              type="text"
-              name="category"
-              placeholder="Category"
-              value={formData.category}
-              onChange={handleChange}
-              required
-              className="w-full border border-gray-700 bg-gray-800 p-2 rounded-md text-white placeholder-gray-400 mt-1 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-            />
-          </div>
-          <div className="mt-2">
-            <label className="block font-semibold text-gray-300">
-              Min Bid Amount
-            </label>
-            <input
-              type="number"
-              name="minBidAmount"
-              placeholder="Min Bid Amount "
-              value={formData.minBidAmount}
-              onChange={handleChange}
-              required
-              className="w-full border border-gray-700 bg-gray-800 p-2 rounded-md text-white placeholder-gray-400 mt-1 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-            />
-          </div>
-          <div className="mt-2">
-            <label className="block font-semibold text-gray-300">
-              Max Bid Amount
-            </label>
-            <input
-              type="number"
-              name="maxBidAmount"
-              placeholder="Max Bid Amount "
-              value={formData.maxBidAmount}
-              onChange={handleChange}
-              required
-              className="w-full border border-gray-700 bg-gray-800 p-2 rounded-md text-white placeholder-gray-400 mt-1 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-            />
-          </div>
-          <div className="mt-2">
-            <label className="block font-semibold text-gray-300">
-              Bid Opening Date
-            </label>
-            <input
-              type="date"
-              name="bidOpeningDate"
-              value={formData.bidOpeningDate}
-              onChange={handleChange}
-              required
-              className="w-full border border-gray-700 bg-gray-800 p-2 rounded-md text-white placeholder-gray-400 mt-1 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-            />
-          </div>
-          <div className="mt-2">
-            <label className="block font-semibold text-gray-300">
-              Bid Closing Date
-            </label>
-            <input
-              type="date"
-              name="bidClosingDate"
-              value={formData.bidClosingDate}
-              onChange={handleChange}
-              required
-              className="w-full border border-gray-700 bg-gray-800 p-2 rounded-md text-white placeholder-gray-400 mt-1 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-            />
-          </div>
-          <div className="mt-2">
-            <label className="block font-semibold text-gray-300">
-              Work Location
-            </label>
-            <input
-              type="text"
-              name="location"
-              placeholder="Work Location"
-              value={formData.location}
-              onChange={handleChange}
-              required
-              className="w-full border border-gray-700 bg-gray-800 p-2 rounded-md text-white placeholder-gray-400 mt-1 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-            />
-          </div>
+          <div className="grid gap-4">
+            {[
+              {
+                label: "Tender Title",
+                name: "title",
+                placeholder: "Tender Title",
+              },
+              {
+                label: "Tender Description",
+                name: "description",
+                placeholder: "Description",
+                type: "textarea",
+              },
+              { label: "Category", name: "category", placeholder: "Category" },
+              {
+                label: "Min Bid Amount",
+                name: "minBidAmount",
+                placeholder: "Min Bid Amount",
+                type: "number",
+              },
+              {
+                label: "Max Bid Amount",
+                name: "maxBidAmount",
+                placeholder: "Max Bid Amount",
+                type: "number",
+              },
+              {
+                label: "Bid Opening Date",
+                name: "bidOpeningDate",
+                type: "date",
+              },
+              {
+                label: "Bid Closing Date",
+                name: "bidClosingDate",
+                type: "date",
+              },
+              {
+                label: "Work Location",
+                name: "location",
+                placeholder: "Work Location",
+              },
+            ].map(({ label, name, placeholder, type = "text" }, index) => (
+              <motion.div
+                key={name}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className="mt-2"
+              >
+                <label className="block font-semibold text-gray-300 mb-2">
+                  {label}
+                </label>
+                {type === "textarea" ? (
+                  <textarea
+                    name={name}
+                    placeholder={placeholder}
+                    value={formData[name]}
+                    onChange={handleChange}
+                    required
+                    className="w-full border border-gray-700 bg-[#0f1224] p-3 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-gray-500 transition"
+                  />
+                ) : (
+                  <input
+                    type={type}
+                    name={name}
+                    placeholder={placeholder}
+                    value={formData[name]}
+                    onChange={handleChange}
+                    required
+                    className="w-full border border-gray-700 bg-[#0f1224] p-3 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-gray-500 transition"
+                  />
+                )}
+              </motion.div>
+            ))}
 
-          <button
-            type="submit"
-            onClick={submitTender}
-            className="bg-teal-400 text-black p-2 rounded-lg font-bold"
-            disabled={loading}
-          >
-            {loading ? "Creating Tender..." : "Submit Tender"}
-          </button>
-        </div>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.95 }}
+              type="submit"
+              onClick={submitTender}
+              className="bg-white text-black p-3 rounded-xl font-bold mt-6 hover:shadow-lg transition"
+              disabled={loading}
+            >
+              {loading ? "Creating Tender..." : "Submit Tender"}
+            </motion.button>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

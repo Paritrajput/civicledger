@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import axios from "axios";
 import { useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
 import MilestoneTracker from "@/Components/People/voting";
 import ProtectedRoute from "@/Components/ProtectedRoutes/protected-routes";
 export default function Page() {
@@ -123,7 +124,7 @@ export const AdminPaymentPage = () => {
         `/api/payment/get-payments/${contractData._id}`,
         {
           method: "GET",
-        }
+        },
       );
 
       const data = await response.json();
@@ -147,7 +148,7 @@ export const AdminPaymentPage = () => {
 
   const totalPaymentsMade = requestedPayments.reduce(
     (sum, payment) => sum + payment.paymentMade,
-    0
+    0,
   );
   const progressPercentage = contractData.bidAmount
     ? (totalPaymentsMade / contractData.bidAmount) * 100
@@ -155,195 +156,157 @@ export const AdminPaymentPage = () => {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-[#060611] text-white md:p-6 p-3">
-        <h1 className="text-3xl font-bold text-center mb-6">
-          Contract Details
-        </h1>
-
-        {contractor ? (
-          <div className="bg-gray-900 p-6 rounded-lg shadow-md mb-6 flex max-md:flex-col gap-5 md:gap-20">
-            <div>
-              <h2 className="text-2xl font-semibold text-teal-400">
-                Contractor Details
-              </h2>
-              <p className="text-gray-400">Name: {contractor.name}</p>
-              <p className="text-gray-400">Email: {contractor.email}</p>
-              <p className="text-gray-400">
-                Experience: {contractor.experienceYears || 0} years
-              </p>
-              <p className="text-yellow-400 font-semibold">
-                Rating: {contractorRating || 0} ⭐
-              </p>
-            </div>
-            <div className="">
-              <h3 className="text-lg font-semibold text-teal-400">
-                Rate the Contractor
-              </h3>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  min="1"
-                  max="5"
-                  className="p-2 bg-gray-800 text-white rounded"
-                  value={newRating}
-                  onChange={(e) => setNewRating(e.target.value)}
-                />
-                <button
-                  className="bg-teal-500 text-white px-4 py-2 rounded"
-                  onClick={submitRating}
-                >
-                  Submit Rating
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <p className="text-gray-400">Loading contractor details...</p>
-        )}
-
-        <div className="bg-gray-900 p-6 rounded-lg shadow-md mb-6">
-          <h2 className="text-2xl font-semibold text-teal-400">
+      <div className="relative min-h-screen text-white">
+        <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
+        <div className="relative p-4 md:p-6">
+          <motion.h1
+            initial={{ opacity: 0, y: -15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-3xl font-bold text-center mb-6"
+          >
             Contract Details
-          </h2>
-          <p className="text-gray-400">ID: {contractData._id}</p>
-          <p className="text-gray-400">
-            Contract Title: {myTender?.title || "N/A"}
-          </p>
-          <p className="text-gray-400">
-            Contract Description: {myTender?.description || "N/A"}
-          </p>
-          <p className="text-gray-400">
-            Total Budget: ₹{contractData.bidAmount}
-          </p>
-        </div>
+          </motion.h1>
 
-        <div className="bg-gray-800 p-4 rounded-md shadow-md mb-6">
-          <h3 className="text-lg font-semibold text-teal-400">
-            Contract Progress
-          </h3>
-          <div className="w-full bg-gray-700 h-4 rounded-md overflow-hidden mt-2">
-            <div
-              className="bg-green-500 h-4"
-              style={{ width: `${progressPercentage}%` }}
-            ></div>
-          </div>
-          <p className="text-gray-400 mt-2">
-            {progressPercentage.toFixed(2)}% Completed
-          </p>
-        </div>
-
-        <MilestoneTracker contractData={contractData} />
-
-        <h2 className="text-2xl font-semibold text-white mb-4 justify-self-center">
-          Payment History
-        </h2>
-        {loading ? (
-          <p className="text-center text-gray-400">Loading payments...</p>
-        ) : error ? (
-          <p className="text-center text-red-500">{error}</p>
-        ) : requestedPayments.filter(
-            (payment) => payment.status === "Completed"
-          ).length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {requestedPayments
-              .filter((payment) => payment.status === "Completed")
-              .map((payment) => (
-                <div
-                  key={payment._id}
-                  className="bg-gray-900 p-6 rounded-lg shadow-md"
-                >
-                  <p className="text-lg text-teal-400">ID: {payment._id}</p>
-                  <p className="text-gray-400">
-                    Bid Amount: ₹{payment.bidAmount}
-                  </p>
-                  <p className="text-gray-400">
-                    Payment Requested: ₹{payment.paymentMade}
-                  </p>
-                  <p className="text-gray-400">Reason: {payment.reason}</p>
-                  <p className="text-yellow-400">Status: {payment.status}</p>
-                </div>
-              ))}
-          </div>
-        ) : (
-          <p className="text-center text-gray-400">No payment history found.</p>
-        )}
-
-        {/* {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-2xl font-semibold mb-4 text-white">
-              Cast Your Vote
-            </h2>
-
-            <div className="mb-4">
-              <label className="block mb-2 font-medium">Decision:</label>
-              <div className="flex space-x-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="vote"
-                    value="approve"
-                    checked={vote === "approve"}
-                    onChange={(e) => setVote(e.target.value)}
-                    className="mr-2"
-                  />
-                  Approve
-                </label>
-     
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="vote"
-                    value="reject"
-                    checked={vote === "reject"}
-                    onChange={(e) => setVote(e.target.value)}
-                    className="mr-2"
-                  />
-                  Reject
-                </label>
+          {contractor ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl shadow-md mb-6 flex max-md:flex-col gap-5 md:gap-20 border border-gray-800"
+            >
+              <div>
+                <h2 className="text-2xl font-semibold mb-4">
+                  Contractor Details
+                </h2>
+                <p className="text-gray-300">Name: {contractor.name}</p>
+                <p className="text-gray-300">Email: {contractor.email}</p>
+                <p className="text-gray-300">
+                  Experience: {contractor.experienceYears || 0} years
+                </p>
+                <p className="text-yellow-400 font-semibold mt-2">
+                  Rating: {contractorRating || 0} ⭐
+                </p>
               </div>
-            </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-3">
+                  Rate the Contractor
+                </h3>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="5"
+                    className="p-3 bg-[#0f1224] border border-gray-700 text-white rounded-xl focus:outline-none focus:border-gray-500"
+                    value={newRating}
+                    onChange={(e) => setNewRating(e.target.value)}
+                  />
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="bg-white text-black px-6 py-3 rounded-xl font-semibold transition"
+                    onClick={submitRating}
+                  >
+                    Submit Rating
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <p className="text-gray-400 text-center">
+              Loading contractor details...
+            </p>
+          )}
 
-            <div className="mb-4">
-              <label className="block mb-2 font-medium">Review:</label>
-              <textarea
-                value={review}
-                onChange={(e) => setReview(e.target.value)}
-                placeholder="Write your review..."
-                className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
-                rows={3}
-              />
-            </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl shadow-md mb-6 border border-gray-800"
+          >
+            <h2 className="text-2xl font-semibold mb-4">Contract Details</h2>
+            <p className="text-gray-300 break-all">ID: {contractData._id}</p>
+            <p className="text-gray-300">
+              Contract Title: {myTender?.title || "N/A"}
+            </p>
+            <p className="text-gray-300">
+              Contract Description: {myTender?.description || "N/A"}
+            </p>
+            <p className="text-gray-300">
+              Total Budget: ₹{contractData.bidAmount}
+            </p>
+          </motion.div>
 
-            <div className="mb-4">
-              <label className="block mb-2 font-medium">Upload Progress Image:</label>
-              <input
-                type="file"
-                onChange={(e) => setImage(e.target.files[0])}
-                className="text-white"
-              />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl shadow-md mb-6 border border-gray-800"
+          >
+            <h3 className="text-lg font-semibold mb-4">Contract Progress</h3>
+            <div className="w-full bg-gray-800/50 h-4 rounded-full overflow-hidden">
+              <motion.div
+                className="bg-gradient-to-r from-emerald-500 to-teal-400 h-4 rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${progressPercentage}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              ></motion.div>
             </div>
+            <p className="text-gray-300 mt-3">
+              {progressPercentage.toFixed(2)}% Completed
+            </p>
+          </motion.div>
 
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded"
-              >
-                Submit Vote
-              </button>
+          <MilestoneTracker contractData={contractData} />
+
+          <motion.h2
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-2xl font-semibold text-white mb-6 text-center"
+          >
+            Payment History
+          </motion.h2>
+          {loading ? (
+            <p className="text-center text-gray-400">Loading payments...</p>
+          ) : error ? (
+            <p className="text-center text-red-500">{error}</p>
+          ) : requestedPayments.filter(
+              (payment) => payment.status === "Completed",
+            ).length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {requestedPayments
+                .filter((payment) => payment.status === "Completed")
+                .map((payment, idx) => (
+                  <motion.div
+                    key={payment._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    whileHover={{ y: -4 }}
+                    className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl shadow-md border border-gray-800 hover:border-gray-600 transition"
+                  >
+                    <p className="text-lg font-semibold break-all">
+                      ID: {payment._id}
+                    </p>
+                    <p className="text-gray-300 mt-3">
+                      Bid Amount: ₹{payment.bidAmount}
+                    </p>
+                    <p className="text-gray-300">
+                      Payment Requested: ₹{payment.paymentMade}
+                    </p>
+                    <p className="text-gray-300">Reason: {payment.reason}</p>
+                    <p className="text-yellow-400 font-medium mt-2">
+                      Status: {payment.status}
+                    </p>
+                  </motion.div>
+                ))}
             </div>
-          </div>
+          ) : (
+            <p className="text-center text-gray-400">
+              No payment history found.
+            </p>
+          )}
         </div>
-      )} */}
       </div>
     </ProtectedRoute>
   );
 };
-
-

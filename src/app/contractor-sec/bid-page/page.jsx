@@ -2,35 +2,31 @@
 
 import axios from "axios";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 
 const BidForm = () => {
   const [bidAmount, setBidAmount] = useState("");
-  const [loading, setLoading] = useState(false);
   const [proposalDocument, setProposalDocument] = useState("");
-  const [milestones, setMilestones] = useState([
-    { description: "", amount: "", dueDate: "" },
-  ]);
+  const [loading, setLoading] = useState(false);
+  const [contractorId, setContractorId] = useState("");
 
   const router = useRouter();
   const searchParams = useSearchParams();
+
   const blockchainTenderId = searchParams.get("tenderId");
   const tenderId = searchParams.get("mongoId");
 
-  const [contractorId, setContractorId] = useState("");
-
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      axios
-        .get("/api/contractor/profile", {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        .then((res) => {
-          setContractorId(res.data._id);
-        })
-        .catch(() => localStorage.removeItem("token"));
-    }
+    if (!token) return;
+
+    axios
+      .get("/api/contractor/profile", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => setContractorId(res.data._id))
+      .catch(() => localStorage.removeItem("token"));
   }, []);
 
   const handleSubmit = async (e) => {
@@ -51,125 +47,79 @@ const BidForm = () => {
       });
 
       const data = await response.json();
+
       if (response.ok) {
         alert("Bid placed successfully!");
+        router.back();
       } else {
-        alert(`Error placing bid: ${data.error}`);
+        alert(data.error || "Failed to place bid");
       }
     } catch (error) {
       console.error(error);
-      alert(`Error: ${error.message}`);
+      alert("Something went wrong while submitting the bid");
     } finally {
       setLoading(false);
     }
   };
 
-  // // Handle milestone input changes
-  // const handleMilestoneChange = (index, field, value) => {
-  //   const newMilestones = [...milestones];
-  //   newMilestones[index][field] = value;
-  //   setMilestones(newMilestones);
-  // };
-
-  // // Add a new milestone
-  // const addMilestone = () => {
-  //   setMilestones([...milestones, { description: "", amount: "", dueDate: "" }]);
-  // };
-
-  // // Remove a milestone
-  // const removeMilestone = (index) => {
-  //   const newMilestones = milestones.filter((_, i) => i !== index);
-  //   setMilestones(newMilestones);
-  // };
-
   return (
-    <div className="flex flex-col  my-9 items-center max-md:p-3 max-md:min-h-[80vh]">
-      <div className="text-teal-400 md:text-3xl text-2xl font-bold my-5  ">Bidding Portal</div>
-      <div className=" bg-gray-900 text-white rounded-lg md:w-[40%] md:p-6 p-3">
-        <h2 className="text-lg font-bold">Place a Bid</h2>
-        <form onSubmit={handleSubmit}>
-          <label className="block mt-2">Bid Amount</label>
-          <input
-            type="number"
-            value={bidAmount}
-            onChange={(e) => setBidAmount(e.target.value)}
-            className="w-full p-2 bg-gray-800 border border-gray-700 rounded mt-1"
-            placeholder="Enter bid amount"
-            required
-          />
+    <div className="relative min-h-screen text-white">
+      {/* Fixed background */}
+      <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
 
-          <label className="block mt-2">Proposal Document</label>
-          <input
-            type="text"
-            value={proposalDocument}
-            onChange={(e) => setProposalDocument(e.target.value)}
-            className="w-full p-2 bg-gray-800 border border-gray-700 rounded mt-1"
-            placeholder="Enter proposal document link"
-            required
-          />
+      {/* Content */}
+      <div className="relative flex justify-center items-start p-4 md:p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md bg-[#14162d8a] backdrop-blur-xl rounded-2xl border border-gray-800 p-6 shadow-lg"
+        >
+          <h1 className="text-2xl font-bold text-center mb-6">
+            Bidding Portal
+          </h1>
 
-          {/* <div className="mt-4">
-            <h3 className="text-lg font-bold">Milestones</h3>
-            {milestones.map((milestone, index) => (
-              <div key={index} className="mb-4 border-b pb-2">
-                <label className="block mt-2">Milestone Description</label>
-                <input
-                  type="text"
-                  value={milestone.description}
-                  onChange={(e) => handleMilestoneChange(index, "description", e.target.value)}
-                  className="w-full p-2 bg-gray-800 border border-gray-700 rounded mt-1"
-                  placeholder="Enter milestone description"
-                  required
-                />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Bid Amount */}
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">
+                Bid Amount
+              </label>
+              <input
+                type="number"
+                value={bidAmount}
+                onChange={(e) => setBidAmount(e.target.value)}
+                placeholder="Enter bid amount"
+                required
+                className="w-full px-4 py-3 bg-[#0f1224] border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-gray-500"
+              />
+            </div>
 
-                <label className="block mt-2">Milestone Amount</label>
-                <input
-                  type="number"
-                  value={milestone.amount}
-                  onChange={(e) => handleMilestoneChange(index, "amount", e.target.value)}
-                  className="w-full p-2 bg-gray-800 border border-gray-700 rounded mt-1"
-                  placeholder="Enter milestone amount"
-                  required
-                />
+            {/* Proposal Document */}
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">
+                Proposal Document Link
+              </label>
+              <input
+                type="text"
+                value={proposalDocument}
+                onChange={(e) => setProposalDocument(e.target.value)}
+                placeholder="Enter proposal document URL"
+                required
+                className="w-full px-4 py-3 bg-[#0f1224] border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-gray-500"
+              />
+            </div>
 
-                <label className="block mt-2">Milestone Due Date</label>
-                <input
-                  type="date"
-                  value={milestone.dueDate}
-                  onChange={(e) => handleMilestoneChange(index, "dueDate", e.target.value)}
-                  className="w-full p-2 bg-gray-800 border border-gray-700 rounded mt-1"
-                  required
-                />
-
-                {milestones.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeMilestone(index)}
-                    className="mt-2 p-2 bg-red-600 text-white rounded"
-                  >
-                    Remove Milestone
-                  </button>
-                )}
-              </div>
-            ))}
-
-            <button
-              type="button"
-              onClick={addMilestone}
-              className="mt-2 p-2 bg-green-600 text-white rounded"
+            {/* Submit */}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.95 }}
+              disabled={loading}
+              className="w-full bg-white text-black py-3 rounded-xl font-semibold hover:bg-gray-200 transition disabled:opacity-60"
             >
-              Add Milestone
-            </button>
-          </div> */}
-
-          <button
-            type="submit"
-            className="mt-3 p-2 bg-teal-600 rounded w-full"
-            disabled={loading}
-          >
-            {loading ? "Submitting..." : "Submit Bid"}
-          </button>
-        </form>
+              {loading ? "Submitting..." : "Place Bid"}
+            </motion.button>
+          </form>
+        </motion.div>
       </div>
     </div>
   );

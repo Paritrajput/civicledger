@@ -84,6 +84,7 @@ export default function HomePage() {
             title="Upload New Issue"
             desc="Report a problem in your locality with image and location."
             href="/public-sec/public-issue"
+            
           />
           {/* Feature: Active Contracts */}
           <FeatureCard

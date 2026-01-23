@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "axios";
+import { motion } from "framer-motion";
 import ProtectedRoute from "@/Components/ProtectedRoutes/protected-routes";
 
 const PeopleVote = () => {
@@ -25,7 +26,7 @@ const PeopleVote = () => {
       } catch {
         console.log("Failed to fetch issue");
       } finally {
-        setLoading(false); // ⛔ loading done
+        setLoading(false); 
       }
     };
     if (id) getIssue();
@@ -100,15 +101,18 @@ const PeopleVote = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-black p-6">
-        <div className="bg-gray-900 shadow-lg border border-gray-700 rounded-lg p-6 w-full max-w-lg text-white animate-pulse">
-          <div className="h-6 bg-gray-700 rounded w-3/4 mb-4"></div>
-          <div className="h-4 bg-gray-700 rounded w-full mb-2"></div>
-          <div className="h-4 bg-gray-700 rounded w-5/6 mb-4"></div>
-          <div className="h-48 bg-gray-800 rounded mb-6"></div>
-          <div className="flex gap-4">
-            <div className="h-10 w-24 bg-gray-700 rounded"></div>
-            <div className="h-10 w-24 bg-gray-700 rounded"></div>
+      <div className="relative min-h-screen text-white">
+        <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
+        <div className="flex justify-center items-center min-h-screen p-6">
+          <div className="bg-[#14162d8a] backdrop-blur-xl shadow-lg border border-gray-800 rounded-2xl p-6 w-full max-w-lg animate-pulse">
+            <div className="h-6 bg-gray-700 rounded-lg w-3/4 mb-4"></div>
+            <div className="h-4 bg-gray-700 rounded-lg w-full mb-2"></div>
+            <div className="h-4 bg-gray-700 rounded-lg w-5/6 mb-4"></div>
+            <div className="h-48 bg-gray-800 rounded-lg mb-6"></div>
+            <div className="flex gap-4">
+              <div className="h-10 w-24 bg-gray-700 rounded-lg"></div>
+              <div className="h-10 w-24 bg-gray-700 rounded-lg"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -116,50 +120,81 @@ const PeopleVote = () => {
   }
 
   if (!issue2)
-    return <p className="text-center text-white">Issue not found.</p>;
+    return (
+      <div className="relative min-h-screen text-white flex items-center justify-center">
+        <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
+        <p className="text-center">Issue not found.</p>
+      </div>
+    );
 
   return (
-      <ProtectedRoute>
-    <div className=" min-h-screen bg-[#060611] md:p-6 p-3">
-      <h1 className="text-3xl font-extrabold justify-self-center my-5 text-teal-400">Vote Issue</h1>
-      <div className="bg-gray-900 shadow-lg border border-gray-700 rounded-lg p-6 w-full max-w-lg text-white justify-self-center">
-        <h2 className="text-2xl font-bold text-teal-400">
-          {issue2.issue_type}
-        </h2>
-        <p className="text-gray-300 mt-2">{issue2.description}</p>
-        <h2 className="text-gray-300 mt-2">
-          {issue2.placename}
-        </h2>
-        {issue2.image && (
-          <img
-            src={issue2.image}
-            alt="Issue Image"
-            className="mt-4 rounded-lg border border-gray-700"
-          />
-        )}
+    <ProtectedRoute>
+      <div className="relative min-h-screen text-white">
+        {/* FIXED BACKGROUND */}
+        <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
 
-        {!isVoting ? (
-          <div className="mt-6 flex gap-4 justify-center">
-            <button
-              onClick={() => handleVoting(true)}
-              className="px-4 py-2 bg-green-500 text-black font-semibold rounded-md hover:bg-green-400 transition shadow-lg"
-            >
-              ✅ Approve
-            </button>
-            <button
-              onClick={() => handleVoting(false)}
-              className="px-4 py-2 bg-red-500 text-black font-semibold rounded-md hover:bg-red-400 transition shadow-lg"
-            >
-              ❌ Deny
-            </button>
-          </div>
-        ) : (
-          <button className="mt-6 px-4 py-2 bg-gray-700 text-gray-300 font-semibold rounded-md cursor-not-allowed shadow-lg w-full">
-            Voting in progress...
-          </button>
-        )}
+        {/* SCROLLABLE CONTENT */}
+        <div className="relative p-4 md:p-6 flex flex-col items-center">
+          {/* Header */}
+          <motion.h1
+            initial={{ opacity: 0, y: -15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-2xl md:text-3xl font-bold text-center mb-8"
+          >
+            Vote on Issue
+          </motion.h1>
+
+          {/* Issue Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-[#14162d8a] backdrop-blur-xl shadow-lg border border-gray-800 rounded-2xl p-6 w-full max-w-lg text-white"
+          >
+            <h2 className="text-2xl font-bold">
+              {issue2.issue_type}
+            </h2>
+            <p className="text-gray-300 mt-3">{issue2.description}</p>
+            <p className="text-gray-400 mt-3 font-medium">
+              📍 {issue2.placename}
+            </p>
+
+            {issue2.image && (
+              <motion.img
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                src={issue2.image}
+                alt="Issue Image"
+                className="mt-5 rounded-xl border border-gray-700 w-full"
+              />
+            )}
+
+            {!isVoting ? (
+              <div className="mt-6 flex gap-4 justify-center">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleVoting(true)}
+                  className="px-6 py-3 bg-green-500 text-black font-semibold rounded-xl hover:bg-green-400 transition shadow-lg"
+                >
+                  ✅ Approve
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleVoting(false)}
+                  className="px-6 py-3 bg-red-500 text-white font-semibold rounded-xl hover:bg-red-400 transition shadow-lg"
+                >
+                  ❌ Reject
+                </motion.button>
+              </div>
+            ) : (
+              <div className="mt-6 text-center">
+                <p className="text-gray-300 font-medium">Processing your vote...</p>
+              </div>
+            )}
+          </motion.div>
+        </div>
       </div>
-    </div>
     </ProtectedRoute>
   );
 };

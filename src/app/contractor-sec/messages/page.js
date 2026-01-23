@@ -1,11 +1,14 @@
-import React from 'react'
+import React from "react";
 
 function page() {
   return (
-    <div className='min-h-[88vh] justify-self-center pt-32'>
-      No Messages till yet
+    <div className="relative min-h-screen text-white">
+      <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
+      <div className="relative flex items-center justify-center min-h-screen">
+        <p className="text-lg text-gray-300">No Messages till yet</p>
+      </div>
     </div>
-  )
+  );
 }
 
-export default page
+export default page;

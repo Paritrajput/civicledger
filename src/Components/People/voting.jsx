@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { motion } from "framer-motion";
 
 const MilestoneTracker = ({ contractData }) => {
   const [milestones, setMilestones] = useState([]);
@@ -142,8 +143,8 @@ const MilestoneTracker = ({ contractData }) => {
   };
 
   return (
-    <div className=" bg-black/25 text-white md:p-6 p-1 ">
-      <h2 className="md:text-2xl text-xl font-semibold text-white mb-4 justify-self-center">
+    <div className="bg-transparent text-white md:p-6 p-3">
+      <h2 className="md:text-2xl text-xl font-semibold text-white mb-6">
         Payment Requested
       </h2>
       {loading ? (
@@ -155,51 +156,65 @@ const MilestoneTracker = ({ contractData }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {requestedPayments
             .filter((payment) => payment.status === "Pending")
-            .map((payment) => {
+            .map((payment, idx) => {
               const paymentTime = new Date(payment.createdAt);
               const timeSinceRequest =
                 (new Date() - paymentTime) / (1000 * 60 * 60);
               const votingAvailable = timeSinceRequest <= 0.8;
               return (
-                <div
+                <motion.div
                   key={payment._id}
-                  className="bg-gray-900 md:p-6 p-3 rounded-lg shadow-md"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  whileHover={{ y: -4 }}
+                  className="bg-[#14162d8a] backdrop-blur-xl md:p-6 p-4 rounded-2xl shadow-lg border border-gray-800 hover:border-gray-600 transition"
                 >
-                  <p className="text-lg text-teal-400">ID: {payment._id}</p>
-                  <p className="text-gray-400">
-                    Bid Amount: ₹{payment.bidAmount}
+                  <p className="text-lg font-semibold text-white break-all">
+                    ID: <span className="text-sm">{payment._id}</span>
                   </p>
-                  <p className="text-gray-400">
-                    Payment Requested: ₹{payment.paymentMade}
+                  <p className="text-gray-300 mt-3">
+                    <strong>Bid Amount:</strong> ₹{payment.bidAmount}
+                  </p>
+                  <p className="text-gray-300">
+                    <strong>Payment Requested:</strong> ₹{payment.paymentMade}
                   </p>
                   {payment.progress && (
-                    <p className="text-gray-400">
-                      Work Progress: {payment.progress}
+                    <p className="text-gray-300">
+                      <strong>Work Progress:</strong> {payment.progress}
                     </p>
                   )}
-                  <p className="text-gray-400">Reason: {payment.reason}</p>
-                  <p className="text-yellow-400">Status: {payment.status}</p>
+                  <p className="text-gray-300">
+                    <strong>Reason:</strong> {payment.reason}
+                  </p>
+                  <p className="text-yellow-400 font-medium mt-2">
+                    Status: {payment.status}
+                  </p>
                   <div className="mt-4">
                     {Math.max(0, 0.8 - timeSinceRequest).toFixed(1) > 0 && (
-                      <p className="text-sm text-gray-400">
+                      <p className="text-sm text-gray-400 mb-3">
                         Time left:{" "}
-                        {Math.max(0, 0.8 - timeSinceRequest).toFixed(1)} hrs
+                        <span className="font-semibold">
+                          {Math.max(0, 0.8 - timeSinceRequest).toFixed(1)} hrs
+                        </span>
                       </p>
                     )}
-                    <div className="flex gap-4 mt-2">
+                    <div className="flex gap-4">
                       {votingAvailable ? (
-                        <button
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
                           onClick={() => openVoteModal(payment)}
-                          className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg"
+                          className="bg-white text-black px-4 py-2 rounded-lg font-semibold transition hover:shadow-lg"
                         >
                           Vote
-                        </button>
+                        </motion.button>
                       ) : (
-                        <p>Voting Over</p>
+                        <p className="text-red-400 font-medium">Voting Over</p>
                       )}
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
         </div>
@@ -207,78 +222,86 @@ const MilestoneTracker = ({ contractData }) => {
         <p className="text-center text-gray-400">No pending payment found.</p>
       )}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-2xl font-semibold mb-4 text-white">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-[#14162d8a] backdrop-blur-xl rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-800"
+          >
+            <h2 className="text-2xl font-semibold mb-6 text-white">
               Cast Your Vote
             </h2>
 
-            <div className="mb-4">
-              <label className="block mb-2 font-medium">Decision:</label>
+            <div className="mb-6">
+              <label className="block mb-3 font-medium text-white">Decision:</label>
               <div className="flex space-x-4">
-                <label className="flex items-center">
+                <label className="flex items-center cursor-pointer">
                   <input
                     type="radio"
                     name="vote"
                     value="approve"
                     checked={vote === "approve"}
                     onChange={(e) => setVote(e.target.value)}
-                    className="mr-2"
+                    className="mr-3 w-4 h-4 accent-white"
                   />
-                  Approve
+                  <span>Approve</span>
                 </label>
 
-                <label className="flex items-center">
+                <label className="flex items-center cursor-pointer">
                   <input
                     type="radio"
                     name="vote"
                     value="reject"
                     checked={vote === "reject"}
                     onChange={(e) => setVote(e.target.value)}
-                    className="mr-2"
+                    className="mr-3 w-4 h-4 accent-white"
                   />
-                  Reject
+                  <span>Reject</span>
                 </label>
               </div>
             </div>
 
-            <div className="mb-4">
-              <label className="block mb-2 font-medium">Review:</label>
+            <div className="mb-6">
+              <label className="block mb-3 font-medium text-white">Review:</label>
               <textarea
                 value={review}
                 onChange={(e) => setReview(e.target.value)}
                 placeholder="Write your review..."
-                className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white"
+                className="w-full px-4 py-3 rounded-xl bg-[#0f1224] border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-gray-500 transition"
                 rows={3}
               />
             </div>
 
-            <div className="mb-4">
-              <label className="block mb-2 font-medium">
+            <div className="mb-6">
+              <label className="block mb-3 font-medium text-white">
                 Upload Progress Image:
               </label>
               <input
                 type="file"
                 onChange={(e) => setImage(e.target.files[0])}
-                className="text-white"
+                className="w-full px-4 py-3 rounded-xl bg-[#0f1224] border border-gray-700 text-white focus:outline-none file:bg-white file:text-black file:px-3 file:py-1 file:rounded-lg file:border-0 file:cursor-pointer"
               />
             </div>
 
             <div className="flex justify-end space-x-3">
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600"
+                className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition font-medium"
               >
                 Cancel
-              </button>
-              <button
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={handleSubmit}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded"
+                className="px-4 py-2 bg-white text-black rounded-lg hover:shadow-lg transition font-semibold"
               >
                 Submit Vote
-              </button>
+              </motion.button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>

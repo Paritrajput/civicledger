@@ -2,7 +2,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Page1 from "@/Components/Gov/Payment/page1";
 import Page2 from "@/Components/Gov/Payment/page2";
-
+import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function Page() {
@@ -32,23 +32,26 @@ export const ContractBottom = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#060611] text-white pb-20"> {/* Added pb-20 to prevent overlap with bottom nav */}
-      <div className="flex-1 md:p-4 p-1">{renderScene()}</div>
+    <div className="relative min-h-screen text-white pb-20">
+      <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
+      <div className="relative flex-1 md:p-4 p-1">{renderScene()}</div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 z-50">
+      <div className="fixed bottom-0 left-0 right-0 bg-[#14162d8a] backdrop-blur-xl border-t border-gray-800 z-50">
         <div className="flex justify-around items-center p-3 sm:p-4">
           {["Active Payments", "Contract Status"].map((tab) => (
-            <button
+            <motion.button
               key={tab}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => setActiveTab(tab)}
-              className={`px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold transition ${
+              className={`px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold transition rounded-lg ${
                 activeTab === tab
-                  ? "text-teal-400 border-b-2 border-teal-400"
-                  : "text-gray-400 hover:text-teal-300"
+                  ? "text-white  bg-opacity-10 border-b-2 border-white"
+                  : "text-gray-400 hover:text-gray-300"
               }`}
             >
               {tab}
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>

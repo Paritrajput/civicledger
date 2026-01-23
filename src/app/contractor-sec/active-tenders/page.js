@@ -1,7 +1,9 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import { motion } from "framer-motion";
 
 export default function TendersPage() {
   const router = useRouter();
@@ -14,9 +16,8 @@ export default function TendersPage() {
       try {
         const response = await axios.get("/api/tender/get-tender");
         setTenders(response.data);
-        console.log(response.data);
-      } catch (error) {
-        console.error("Could not get tenders", error);
+      } catch (err) {
+        console.error("Could not get tenders", err);
         setError("Could not get tenders");
       } finally {
         setLoading(false);
@@ -27,57 +28,84 @@ export default function TendersPage() {
   }, []);
 
   return (
-    <div className="flex flex-col items-center min-h-screen md:p-6 p-3 bg-[#060611] text-white">
-      <h1 className="md:text-3xl text-2xl font-bold mb-6 text-teal-400">Active Tenders</h1>
-      {error && <p className="text-red-500">{error}</p>}
-      <div className="w-full max-w-3xl">
-        {loading
-          ? Array(5)
-              .fill(0)
-              .map((_, index) => <SkeletonCard key={index} />)
-          : tenders.map((item, index) => (
-              <CardComponent
-                key={index}
-                title={item.title}
-                content={item.description}
-                timeOfComplition={new Date(item.bidClosingDate).toLocaleString()}
-                onClick={() =>
-                  router.push(
-                    `/contractor-sec/tender-desc?tender=${encodeURIComponent(
-                      JSON.stringify(item)
-                    )}`
-                  )
-                }
-              />
-            ))}
+    <div className="relative min-h-screen text-white">
+      {/* Fixed background */}
+      <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
+
+      {/* Content */}
+      <div className="relative max-w-4xl mx-auto p-4 md:p-6">
+        <motion.h1
+          initial={{ opacity: 0, y: -15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-2xl md:text-3xl font-bold mb-8 text-center"
+        >
+          Active Tenders
+        </motion.h1>
+
+        {error && (
+          <p className="text-red-400 text-center mb-6">{error}</p>
+        )}
+
+        <div className="space-y-5">
+          {loading
+            ? Array.from({ length: 5 }).map((_, index) => (
+                <SkeletonCard key={index} />
+              ))
+            : tenders.map((item, index) => (
+                <TenderCard
+                  key={index}
+                  title={item.title}
+                  description={item.description}
+                  deadline={new Date(
+                    item.bidClosingDate
+                  ).toLocaleString()}
+                  onClick={() =>
+                    router.push(
+                      `/contractor-sec/tender-desc?tender=${encodeURIComponent(
+                        JSON.stringify(item)
+                      )}`
+                    )
+                  }
+                />
+              ))}
+        </div>
       </div>
     </div>
   );
 }
 
-function CardComponent({ title, content, timeOfComplition, onClick }) {
+
+
+function TenderCard({ title, description, deadline, onClick }) {
   return (
-    <div
-      className="bg-gray-900 p-4 rounded-lg shadow-lg mb-4 cursor-pointer transition-transform transform hover:scale-105 hover:bg-gray-800 border border-gray-700"
+    <motion.div
+      whileHover={{ y: -4 }}
       onClick={onClick}
+      className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl shadow-lg cursor-pointer border border-gray-800 hover:border-gray-600 transition"
     >
-      
-      <p className="text-green-400 text-xl  font-semibold"> {title}</p>
-      <h2 className="font-medium text-white">{content}</h2>
-      <span className="flex items-center">
-        <p className="font-normal text-lg text-green-400">Bidding deadline : </p>
-        <p className="text-white font-medium "> {timeOfComplition}</p>
-      </span>
-    </div>
+      <h2 className="text-lg font-semibold">{title}</h2>
+
+      <p className="text-gray-300 mt-2 line-clamp-2">
+        {description}
+      </p>
+
+      <div className="flex flex-wrap gap-2 mt-4 text-sm">
+        <span className="text-gray-400">Bidding deadline:</span>
+        <span className="text-white font-medium">{deadline}</span>
+      </div>
+    </motion.div>
   );
 }
 
+
+
 function SkeletonCard() {
   return (
-    <div className="bg-gray-800 p-4 rounded-lg shadow-lg mb-4 animate-pulse">
-      <div className="h-6 bg-gray-700 rounded w-3/4 mb-2"></div>
-      <div className="h-4 bg-gray-700 rounded w-1/2 mb-2"></div>
-      <div className="h-4 bg-gray-700 rounded w-1/3"></div>
+    <div className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-gray-800 animate-pulse">
+      <div className="h-5 bg-gray-700 rounded w-3/4 mb-3" />
+      <div className="h-4 bg-gray-700 rounded w-full mb-2" />
+      <div className="h-4 bg-gray-700 rounded w-2/3 mb-4" />
+      <div className="h-4 bg-gray-700 rounded w-1/3" />
     </div>
   );
 }

@@ -1,72 +1,101 @@
 export default function AboutPage() {
+  const sections = [
+    {
+      title: "Our Mission",
+      content:
+        "To empower citizens, government authorities, and contractors with a transparent and trustworthy digital ecosystem for public tenders and contracts.",
+    },
+    {
+      title: "Our Vision",
+      content:
+        "To create a transparent and efficient government contract system that benefits all stakeholders.",
+    },
+    {
+      title: "Our Values",
+      content: "Integrity, Transparency, and Community Engagement.",
+    },
+    {
+      title: "Why Blockchain?",
+      content:
+        "Blockchain ensures transparency and trust. Every contract, bid, and approval is recorded on a tamper-proof ledger, making it accessible for public verification.",
+    },
+  ];
+
+  const features = [
+    "Enable public and fair bidding for government tenders",
+    "Track milestones with verification by officials and citizens",
+    "Release funds through automated smart contracts",
+    "Ensure accountability through immutable records",
+  ];
+
   return (
-    <div className="min-h-screen bg-[#060611] text-gray-200 px-4 py-10 md:px-20">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-6 text-teal-400">
+    <div className="relative min-h-screen text-white">
+      {/* Fixed background */}
+      <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
+
+      <div className="relative max-w-6xl mx-auto px-4 md:px-8 py-14">
+        {/* Header */}
+        <h1 className="text-3xl md:text-5xl font-bold mb-6 text-center">
           About CivicLedger
         </h1>
 
-        <p className="mb-6 text-lg text-gray-300">
+        <p className="text-gray-400 text-lg max-w-3xl mx-auto text-center mb-12 leading-relaxed">
           <strong className="text-white">CivicLedger</strong> is a decentralized
           platform designed to transform how government contracts are handled.
           Using blockchain technology, we bring transparency, accountability,
           and efficiency to public infrastructure projects.
         </p>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-3 text-white">
-          Our Mission
-        </h2>
-        <p className="mb-6 text-gray-300">
-          To empower citizens, government authorities, and contractors with a
-          transparent and trustworthy digital ecosystem for public tenders and
-          contracts.
-        </p>
+        {/* Sections Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 mb-12">
+          {sections.map((section, index) => (
+            <div
+              key={index}
+              className="bg-[#14162d8a] backdrop-blur-xl border border-gray-800 rounded-2xl p-6 shadow-lg hover:border-gray-600 hover:-translate-y-1 transition"
+            >
+              <h2 className="text-xl font-semibold mb-3">{section.title}</h2>
+              <p className="text-gray-400 leading-relaxed">{section.content}</p>
+            </div>
+          ))}
+        </div>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-3 text-white">
-          What We Do
-        </h2>
-        <ul className="list-disc ml-6 space-y-2 text-gray-300">
-          <li>Enable public and fair bidding for government tenders</li>
-          <li>Track milestones with verification by officials and citizens</li>
-          <li>Release funds through automated smart contracts</li>
-          <li>Ensure accountability through immutable records</li>
-        </ul>
+        {/* What We Do Section */}
+        <div className="bg-[#14162d8a] backdrop-blur-xl border border-gray-800 rounded-2xl p-8 shadow-lg mb-12">
+          <h2 className="text-2xl font-semibold mb-6">What We Do</h2>
+          <ul className="space-y-3">
+            {features.map((feature, index) => (
+              <li key={index} className="flex items-start text-gray-400">
+                <span className="text-teal-400 mr-3 mt-1">✓</span>
+                <span>{feature}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-3 text-white">
-          Why Blockchain?
-        </h2>
-        <p className="mb-6 text-gray-300">
-          Blockchain ensures transparency and trust. Every contract, bid, and
-          approval is recorded on a tamper-proof ledger, making it accessible
-          for public verification.
-        </p>
-
-        <h2 className="text-2xl font-semibold mt-8 mb-3 text-white">
-          Who We Serve
-        </h2>
-        <ul className="list-disc ml-6 space-y-2 text-gray-300 mb-6">
-          <li>
-            <strong className="text-white">Government:</strong> Manage tenders,
-            approve milestones, track progress
-          </li>
-          <li>
-            <strong className="text-white">Contractors:</strong> Submit bids,
-            get paid on verified milestones
-          </li>
-          <li>
-            <strong className="text-white">Citizens:</strong> Vote on project
-            quality, monitor public spending
-          </li>
-        </ul>
-
-        <h2 className="text-2xl font-semibold mt-8 mb-3 text-white">
-          Our Vision
-        </h2>
-        <p className="text-gray-300">
-          We envision a future where every rupee spent on public projects is
-          traceable, justified, and monitored by the people. ConTracker is more
-          than just software — it’s a movement toward responsible governance.
-        </p>
+        {/* Who We Serve Section */}
+        <div className="bg-[#14162d8a] backdrop-blur-xl border border-gray-800 rounded-2xl p-8 shadow-lg">
+          <h2 className="text-2xl font-semibold mb-6">Who We Serve</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <h3 className="text-teal-400 font-semibold mb-2">Government</h3>
+              <p className="text-gray-400">
+                Manage tenders, approve milestones, track progress
+              </p>
+            </div>
+            <div>
+              <h3 className="text-teal-400 font-semibold mb-2">Contractors</h3>
+              <p className="text-gray-400">
+                Submit bids, get paid on verified milestones
+              </p>
+            </div>
+            <div>
+              <h3 className="text-teal-400 font-semibold mb-2">Citizens</h3>
+              <p className="text-gray-400">
+                Vote on project quality, monitor public spending
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

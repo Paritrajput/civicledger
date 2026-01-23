@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import { motion } from "framer-motion";
 
 export default function Page2() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function Page2() {
           });
         },
         (err) => setError("Failed to get location"),
-        { enableHighAccuracy: true }
+        { enableHighAccuracy: true },
       );
     } else {
       setError("Geolocation not supported");
@@ -66,7 +67,7 @@ export default function Page2() {
           userLocation.lat,
           userLocation.lng,
           contract.location?.lat || 0,
-          contract.location?.lng || 0
+          contract.location?.lng || 0,
         );
         return distance <= 5000; // Within 5km radius
       });
@@ -75,68 +76,70 @@ export default function Page2() {
     }
   }, [userLocation, contracts]);
 
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     try {
-  //       const response = await axios.get("/api/contracts/gov-contracts");
-  //       setTenders(response.data);
-  //     } catch (error) {
-  //       console.error("Could not get tenders", error);
-  //       setError("Could not get tenders");
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   fetchData();
-  // }, []);
-
   return (
-    <div className="min-h-screen bg-[#060611] p-6 text-white">
-      <h1 className="text-3xl font-bold text-center mb-6">
+    <div className="relative p-4 md:p-6 text-white">
+      {/* Header */}
+      <motion.h1
+        initial={{ opacity: 0, y: -15 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-2xl md:text-3xl font-bold text-center mb-6"
+      >
         Contracts in your area
-      </h1>
+      </motion.h1>
 
-      {error && <p className="text-red-500 text-center">{error}</p>}
+      {error && <p className="text-red-500 text-center mb-6">{error}</p>}
 
+      {/* Contracts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading
           ? Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={index}
-                className="bg-gray-900 p-6 rounded-lg shadow-md animate-pulse"
+                className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl border border-gray-800 animate-pulse"
               >
-                <div className="h-6 bg-gray-700 rounded w-3/4 mb-4"></div>
-                <div className="h-4 bg-gray-700 rounded w-1/2 mb-2"></div>
-                <div className="h-10 bg-gray-700 rounded mt-4"></div>
+                <div className="h-6 bg-gray-700 rounded-lg w-2/3 mb-4" />
+                <div className="h-4 bg-gray-700 rounded-lg w-1/2 mb-2" />
+                <div className="h-10 bg-gray-700 rounded-xl w-32 mt-4" />
               </div>
             ))
           : filteredContracts.map((item, index) => (
-              <div
+              <motion.div
                 key={index}
-                className="bg-gray-900 p-6 rounded-lg shadow-md transition hover:scale-105 hover:bg-gray-800"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.04 }}
+                whileHover={{ y: -4 }}
+                className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl border border-gray-800 hover:border-gray-600 transition"
               >
-                <h2 className="text-xl font-semibold text-teal-400">
+                <h2 className="text-lg md:text-xl font-semibold">
                   {item.contractId}
                 </h2>
-                <p className="text-gray-400 mt-2">
-                  Bid Amount: {item.bidAmount}
+
+                <p className="text-gray-300 mt-2 text-sm">
+                  <strong>Bid Amount:</strong> {item.bidAmount}
                 </p>
-                <button
+
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() =>
                     router.push(
                       `/public-sec/contract-voting?contract=${encodeURIComponent(
-                        JSON.stringify(item)
-                      )}`
+                        JSON.stringify(item),
+                      )}`,
                     )
                   }
-                  className="mt-4 bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition"
+                  className="mt-5 px-5 py-2 bg-white text-black font-semibold rounded-xl transition"
                 >
                   View Details
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
             ))}
       </div>
+
+      {!loading && filteredContracts.length === 0 && (
+        <p className="text-gray-400 text-center py-10">No contracts found.</p>
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Page1 from "@/Components/People/page1";
 import Page2 from "@/Components/People/page2";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 
 const PublicSec = () => {
   const [index, setIndex] = useState(0);
@@ -27,36 +28,48 @@ const PublicSec = () => {
   };
 
   return (
-    <div className="flex flex-col  bg-black text-white ">
-      <div className="flex justify-between items-center p-3 bg-[#111] border-t border-gray-700 fixed  w-full z-50 px-3">
-        <div className="text-white justify-self-start text-xl font-semibold">
+    <div className="relative min-h-screen text-white">
+      {/* FIXED BACKGROUND */}
+      <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
+
+      {/* NAVBAR */}
+      <div className="flex justify-between items-center p-4 bg-[#14162d8a]/50 backdrop-blur-xl border-b border-gray-800 sticky top-0 z-50 px-6">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-white text-xl font-semibold"
+        >
           Public Corner
-        </div>
-        <div className="flex  gap-20">
+        </motion.div>
+        <div className="flex gap-8">
           {routes.map((route, i) => (
-            <button
+            <motion.button
               key={route.key}
-              className={`flex  items-center p-2 transition-all duration-300 ${
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`flex items-center p-2 transition-all duration-300 rounded-lg ${
                 index === i
-                  ? "text-teal-400 scale-110"
+                  ? "text-white bg-[#1a1d3a]"
                   : "text-gray-400 hover:text-white"
               }`}
               onClick={() => setIndex(i)}
             >
-              {/* <span className="text-2xl">{route.icon}</span> */}
-              <span className="text-sm">{route.title}</span>
-            </button>
+              <span className="text-sm font-medium">{route.title}</span>
+            </motion.button>
           ))}
         </div>
-        <button
+        <motion.button
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => router.push("/public-sec/public-issue")}
-          className="  bg-green-500 text-black px-3 py-1 rounded-full text-xl font-bold shadow-xl hover:bg-green-400 transition"
+          className="bg-white text-black px-4 py-2 rounded-xl text-lg font-bold shadow-xl hover:shadow-2xl transition"
         >
           +
-        </button>
+        </motion.button>
       </div>
-      <div className="flex-grow  p-6 mt-5">{renderScene()}</div>
-      {/* <div className="fixed bottom-52 right-5 z-50"></div> */}
+
+      {/* SCROLLABLE CONTENT */}
+      <div className="relative">{renderScene()}</div>
     </div>
   );
 };

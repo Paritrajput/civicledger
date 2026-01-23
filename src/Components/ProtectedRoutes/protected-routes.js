@@ -12,7 +12,7 @@ export default function ProtectedRoute({ children }) {
   useEffect(() => {
     // Only check after loading is done
     if (!loading) {
-      if (user && user.role === "public") {
+      if (user && user.role === 'public') {
         setIsVerified(true);
       } else {
         router.push("/authenticate/public-auth/login");

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import { motion } from "framer-motion";
 
 export default function Page2() {
   const router = useRouter();
@@ -11,7 +12,7 @@ export default function Page2() {
   const [userLocation, setUserLocation] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -23,7 +24,7 @@ export default function Page2() {
           });
         },
         (err) => setError("Failed to get location"),
-        { enableHighAccuracy: true }
+        { enableHighAccuracy: true },
       );
     } else {
       setError("Geolocation not supported");
@@ -66,7 +67,7 @@ export default function Page2() {
           userLocation.lat,
           userLocation.lng,
           contract.location?.lat || 0,
-          contract.location?.lng || 0
+          contract.location?.lng || 0,
         );
         return distance <= 5000; // Within 5km radius
       });
@@ -74,7 +75,20 @@ export default function Page2() {
       setFilteredContracts(nearbyContracts);
     }
   }, [userLocation, contracts]);
-  
+
+  // Search filter
+  const getDisplayedContracts = () => {
+    if (!searchQuery.trim()) return filteredContracts;
+
+    return filteredContracts.filter(
+      (contract) =>
+        contract.contractId
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        contract.bidAmount?.toString().includes(searchQuery) ||
+        contract.description?.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  };
 
   // useEffect(() => {
   //   const fetchData = async () => {
@@ -93,53 +107,89 @@ export default function Page2() {
   // }, []);
 
   return (
-    <div className="min-h-screen bg-[#060611] md:p-6 p-3 text-teal-400">
-      <h1 className="md:text-3xl text-2xl font-bold text-center mb-6">
-        Contracts in your area
-      </h1>
+    <div className="relative min-h-screen text-white">
+      {/* FIXED BACKGROUND */}
+      <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
 
-      {error && <p className="text-red-500 text-center">{error}</p>}
+      {/* SCROLLABLE CONTENT */}
+      <div className="relative p-4 md:p-6">
+        {/* Header */}
+        <motion.h1
+          initial={{ opacity: 0, y: -15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-2xl md:text-3xl font-bold text-center mb-6"
+        >
+          Contracts in your area
+        </motion.h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {loading
-          ? Array.from({ length: 6 }).map((_, index) => (
-              <div
-                key={index}
-                className="bg-gray-900/50 p-6 rounded-lg shadow-md animate-pulse"
-              >
-                <div className="h-6 bg-gray-700 rounded w-3/4 mb-4"></div>
-                <div className="h-4 bg-gray-700 rounded w-1/2 mb-2"></div>
-                <div className="h-10 bg-gray-700 rounded mt-4"></div>
-              </div>
-            ))
-          : filteredContracts.map((item, index) => (
-            
-              <div
-                key={index}
-                className="bg-[#060611] border-1 border-gray-700 p-6 rounded-lg shadow-md transition hover:scale-105 hover:bg-gray-800"
-              >
-                <h2 className="md:text-xl text-lg font-semibold text-teal-400">
-                  {item.contractId}
-                </h2>
-                 <h2>{item.location.lat}</h2>
-               
-                <p className="text-gray-400 mt-2">
-                  Bid Amount: {item.bidAmount}
-                </p>
-                <button
-                  onClick={() =>
-                    router.push(
-                      `/public-sec/contract-voting?contract=${encodeURIComponent(
-                        JSON.stringify(item)
-                      )}`
-                    )
-                  }
-                  className="mt-4 bg-teal-500 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition"
+        {error && <p className="text-red-500 text-center mb-6">{error}</p>}
+
+        {/* Search Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <input
+            type="text"
+            placeholder="Search contracts by ID, bid amount, or description..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#0f1224] text-white border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:border-gray-500 transition placeholder-gray-500"
+          />
+        </motion.div>
+
+        {/* Contracts Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {loading
+            ? Array.from({ length: 6 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl border border-gray-800 animate-pulse"
                 >
-                  View Details
-                </button>
-              </div>
-            ))}
+                  <div className="h-6 bg-gray-700 rounded-lg w-2/3 mb-4" />
+                  <div className="h-4 bg-gray-700 rounded-lg w-1/2 mb-2" />
+                  <div className="h-10 bg-gray-700 rounded-xl w-32 mt-4" />
+                </div>
+              ))
+            : getDisplayedContracts().map((item, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.04 }}
+                  whileHover={{ y: -4 }}
+                  className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl border border-gray-800 hover:border-gray-600 transition"
+                >
+                  <h2 className="text-lg md:text-xl font-semibold">
+                    {item.contractId}
+                  </h2>
+
+                  <p className="text-gray-300 mt-2 text-sm">
+                    <strong>Bid Amount:</strong> {item.bidAmount}
+                  </p>
+
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() =>
+                      router.push(
+                        `/public-sec/contract-voting?contract=${encodeURIComponent(
+                          JSON.stringify(item),
+                        )}`,
+                      )
+                    }
+                    className="mt-5 px-5 py-2 bg-white text-black font-semibold rounded-xl transition"
+                  >
+                    View Details
+                  </motion.button>
+                </motion.div>
+              ))}
+        </div>
+
+        {!loading && getDisplayedContracts().length === 0 && (
+          <p className="text-gray-400 text-center py-10">No contracts found.</p>
+        )}
       </div>
     </div>
   );

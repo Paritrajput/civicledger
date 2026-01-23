@@ -2,6 +2,7 @@
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import React, { Suspense, useEffect, useState } from "react";
+import { motion } from "framer-motion";
 
 export default function Page() {
   return (
@@ -30,7 +31,7 @@ export function IssueDetail() {
         `/api/public-issue/issue-update/${parsedIssue._id}`,
         {
           method: "PUT",
-        }
+        },
       );
       if (response.ok) {
         router.push("/gov-sec");
@@ -42,70 +43,84 @@ export function IssueDetail() {
   };
 
   return (
-    <div className="my-16 p-3">
-      {issueData && (
-        <div className="bg-gray-900 md:p-6 p-3 rounded-lg shadow-lg w-full max-w-lg justify-self-center">
-          <h2 className="text-2xl font-bold text-teal-400">Issue Details</h2>
+    <div className="relative min-h-screen text-white">
+      <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
+      <div className="relative md:p-6 p-3 min-h-screen flex items-center justify-center">
+        {issueData && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-[#14162d8a] backdrop-blur-xl md:p-6 p-4 rounded-2xl shadow-lg w-full max-w-2xl border border-gray-800"
+          >
+            <h2 className="text-2xl font-bold mb-6">Issue Details</h2>
 
-          {parsedIssue.image && (
-            <img
-              src={parsedIssue.image}
-              alt="Issue"
-              className="w-full h-48 object-cover mt-3 rounded-md shadow-md"
-            />
-          )}
-          <p className="mt-2">
-            <strong className="text-teal-400">Type:</strong>{" "}
-            {parsedIssue.issue_type}
-          </p>
-          <p>
-            <strong className="text-teal-400">Description:</strong>{" "}
-            {parsedIssue.description}
-          </p>
-          <p className="mt-2">
-            <strong className="text-teal-400">Location:</strong>{" "}
-            {parsedIssue.placename}
-          </p>
-          <p className="mt-2">
-            <strong className="text-teal-400">Coordinate:</strong>{" "}
-            {`${parsedIssue.location.lat}/${parsedIssue.location.lng}`}
-          </p>
-          <p className="mt-2">
-            <strong className="text-teal-400">Public Votes:</strong>{" "}
-            {`Approvals : ${parsedIssue.approval}   , Denials : ${parsedIssue.denial}`}
-          </p>
-          <p className="mt-2">
-            <strong className="text-teal-400">Issue Status:</strong>{" "}
-            {parsedIssue.status}
-          </p>
+            {parsedIssue.image && (
+              <motion.img
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                src={parsedIssue.image}
+                alt="Issue"
+                className="w-full h-48 object-cover mt-3 rounded-xl shadow-md"
+              />
+            )}
+            <div className="space-y-3 mt-4">
+              <p className="text-gray-300">
+                <strong className="text-white">Type:</strong>{" "}
+                {parsedIssue.issue_type}
+              </p>
+              <p className="text-gray-300">
+                <strong className="text-white">Description:</strong>{" "}
+                {parsedIssue.description}
+              </p>
+              <p className="text-gray-300">
+                <strong className="text-white">Location:</strong>{" "}
+                {parsedIssue.placename}
+              </p>
+              <p className="text-gray-300">
+                <strong className="text-white">Coordinate:</strong>{" "}
+                {`${parsedIssue.location.lat}/${parsedIssue.location.lng}`}
+              </p>
+              <p className="text-gray-300">
+                <strong className="text-white">Public Votes:</strong>{" "}
+                {`Approvals: ${parsedIssue.approval}, Denials: ${parsedIssue.denial}`}
+              </p>
+              <p className="text-gray-300">
+                <strong className="text-white">Issue Status:</strong>{" "}
+                {parsedIssue.status}
+              </p>
+              <p className="text-gray-300">
+                <strong className="text-white">Date:</strong>{" "}
+                {parsedIssue.date_of_complaint}
+              </p>
+            </div>
 
-          <p className="mt-2">
-            <strong className="text-teal-400">Date:</strong>{" "}
-            {parsedIssue.date_of_complaint}
-          </p>
-
-          <div className="gap-20 flex mt-5 items-center  justify-self-center">
-            <button
-              onClick={() => {
-                router.push(
-                  `/gov-sec/make-tender?issue=${encodeURIComponent(
-                    JSON.stringify(parsedIssue)
-                  )}`
-                );
-              }}
-              className="bg-green-600 rounded-xl py-2 px-3"
-            >
-              Resolve
-            </button>
-            <button
-              onClick={handleRejectIssue}
-              className="bg-red-600 rounded-xl py-2 px-3"
-            >
-              Reject
-            </button>
-          </div>
-        </div>
-      )}
+            <div className="flex gap-4 mt-8 flex-col sm:flex-row">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  router.push(
+                    `/gov-sec/make-tender?issue=${encodeURIComponent(
+                      JSON.stringify(parsedIssue),
+                    )}`,
+                  );
+                }}
+                className="flex-1 bg-white text-black rounded-xl py-3 px-6 font-semibold hover:shadow-lg transition"
+              >
+                Resolve
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleRejectIssue}
+                className="flex-1 bg-red-600 text-white rounded-xl py-3 px-6 font-semibold hover:shadow-lg transition"
+              >
+                Reject
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }

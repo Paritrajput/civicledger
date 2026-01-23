@@ -5,8 +5,9 @@ import Footer from "@/Components/Footer/footer";
 
 import SessionWrapper from "@/lib/sessionWrapper";
 import { GovProvider } from "@/Context/govUser";
+import { NotificationProvider } from "@/Context/NotificationContext";
+import NotificationContainer from "@/Components/Notification/NotificationContainer";
 import Profile from "@/Components/UserProfile/profile";
-
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,22 +27,21 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <GovProvider>
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-         
-        <SessionWrapper>
-        <Navbar />
-        <Profile/>
-        {children}
-        <Footer />
-        </SessionWrapper>
-    
-      
-       
-      </body>
-    </html>
+      <NotificationProvider>
+        <html lang="en">
+          <body
+            className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+          >
+            <SessionWrapper>
+              <NotificationContainer />
+              <Navbar />
+              <Profile />
+              {children}
+              <Footer />
+            </SessionWrapper>
+          </body>
+        </html>
+      </NotificationProvider>
     </GovProvider>
   );
 }
