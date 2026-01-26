@@ -35,6 +35,7 @@ export default function Page1() {
     const fetchIssues = async () => {
       try {
         const response = await axios.get("/api/public-issue");
+        console.log("Fetched issues:", response.data.issues);
         setIssues2(response.data.issues);
       } catch (error) {
         console.error("Error fetching issues:", error);
@@ -85,12 +86,10 @@ export default function Page1() {
 
   return (
     <div className="relative min-h-screen text-white">
-      {/* FIXED BACKGROUND (does NOT scroll) */}
+    
       <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
 
-      {/* SCROLLABLE CONTENT */}
       <div className="relative p-4 md:p-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <motion.h1
             initial={{ opacity: 0, y: -15 }}
@@ -111,7 +110,7 @@ export default function Page1() {
           </motion.select>
         </div>
 
-        {/* Search Bar */}
+    
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -160,15 +159,14 @@ export default function Page1() {
 
                 <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-400 mt-3">
                   <span>
-                    <strong>Location:</strong> {issue.placename}
+                    <strong>Location:</strong> {issue.location.placeName}
                   </span>
                   <span>
-                    <strong>Date:</strong> {issue.date_of_complaint}
+                    <strong>Date:</strong> {issue.createdAt
+                      ? new Date(issue.createdAt).toLocaleDateString()
+                      : "N/A"}
                   </span>
-                  <span className="max-md:hidden">
-                    <strong>Votes:</strong> 👍 {issue.approval} / 👎{" "}
-                    {issue.denial}
-                  </span>
+               
                 </div>
 
                 <motion.button

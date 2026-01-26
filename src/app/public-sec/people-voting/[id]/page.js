@@ -1,195 +1,241 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import axios from "axios";
+import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import ProtectedRoute from "@/Components/ProtectedRoutes/protected-routes";
+import { useNotification } from "@/Context/NotificationContext";
 
 const PeopleVote = () => {
-  const router = useRouter();
   const { id } = useParams();
-  const [issue2, setIssue2] = useState(null);
+
+  const [issue, setIssue] = useState(null);
   const [isVoting, setIsVoting] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [eligible, setEligible] = useState(null);
-  const [issueLocation, setIssueLocation] = useState(null);
-  const [loading, setLoading] = useState(true); // 🔄
+  const [loading, setLoading] = useState(true);
+  const [activeImage, setActiveImage] = useState(0);
+  const [alreadyVoted, setAlreadyVoted] = useState(false);
+  const {error, success, warning} = useNotification();
 
-  // Fetch issue details
+
   useEffect(() => {
-    const getIssue = async () => {
+    const fetchIssue = async () => {
       try {
-        const response = await axios.get(`/api/public-issue/${id}`);
-        setIssue2(response.data);
-        setIssueLocation(response.data.location);
+        const res = await fetch(`/api/public-issue/${id}`);
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        setIssue(data);
       } catch {
-        console.log("Failed to fetch issue");
+        setIssue(null);
       } finally {
-        setLoading(false); 
+        setLoading(false);
       }
     };
-    if (id) getIssue();
+
+    if (id) fetchIssue();
   }, [id]);
 
-  // Get user's geolocation
   useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setUserLocation({ lat: latitude, lon: longitude });
-        },
-        (error) => {
-          console.error("Error fetching location:", error);
-          alert("Location access is required to verify voting eligibility.");
-        }
-      );
-    } else {
-      alert("Geolocation is not supported by this browser.");
+    if (!navigator.geolocation) {
+      warning("Geolocation not supported");
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+        });
+      },
+      () => {
+        warning("Location permission required to vote");
+      }
+    );
   }, []);
 
-  // Check eligibility only when both issue location & user location are available
+
   useEffect(() => {
-    if (userLocation && issueLocation) {
-      checkEligibility(userLocation.lat, userLocation.lon);
-    }
-  }, [userLocation, issueLocation]);
+    if (!userLocation || !issue?.location) return;
 
-  const checkEligibility = async (lat, lon) => {
-    try {
-      const response = await fetch("/api/check-eligibility", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userLat: lat,
-          userLon: lon,
-          issueLat: issueLocation.lat,
-          issueLon: issueLocation.lng,
-        }),
-      });
+    const checkEligibility = async () => {
+      try {
+        const res = await fetch("/api/check-eligibility", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userLat: userLocation.lat,
+            userLon: userLocation.lon,
+            issueLat: issue.location.coordinates[1], // lat
+            issueLon: issue.location.coordinates[0], // lng
+          }),
+        });
 
-      const data = await response.json();
-      console.log(data);
-      setEligible(data.eligible);
-    } catch (error) {
-      console.error("Error checking eligibility:", error);
-    }
-  };
+        const data = await res.json();
+        setEligible(data.eligible);
+      } catch {
+        setEligible(false);
+      }
+    };
 
-  const handleVoting = async (vote) => {
+    checkEligibility();
+  }, [userLocation, issue]);
+
+
+  const handleVoting = async (voteType) => {
     if (!eligible) {
-      alert("You are not eligible for voting.");
+      warning("You are not eligible to vote on this issue.");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      warning("Login required");
       return;
     }
 
     try {
       setIsVoting(true);
-      const response = await fetch("/api/public-issue/vote", {
+
+      const res = await fetch("/api/public-issue/vote", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ issueId: issue2._id, vote }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          issueId: issue._id,
+          vote: voteType, 
+        }),
       });
-      alert("Voted Successfully");
-      setIsVoting(false);
+
+      const data = await res.json();
+
+      if (res.status === 409) {
+        setAlreadyVoted(true);
+        warning("You already voted on this issue");
+        return;
+      }
+
+      if (!res.ok) {
+        error(data.error || "Voting failed");
+        return;
+      }
+
+      success("Vote recorded successfully");
+
+      // update counts locally
+      setIssue((prev) => ({
+        ...prev,
+        publicValidation: {
+          ...prev.publicValidation,
+          approvals: data.approvals,
+          rejections: data.rejections,
+        },
+        status: data.status,
+      }));
     } catch {
-      console.log("Failed to vote");
+      alert("Voting failed");
+    } finally {
       setIsVoting(false);
     }
   };
 
+
   if (loading) {
     return (
-      <div className="relative min-h-screen text-white">
-        <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
-        <div className="flex justify-center items-center min-h-screen p-6">
-          <div className="bg-[#14162d8a] backdrop-blur-xl shadow-lg border border-gray-800 rounded-2xl p-6 w-full max-w-lg animate-pulse">
-            <div className="h-6 bg-gray-700 rounded-lg w-3/4 mb-4"></div>
-            <div className="h-4 bg-gray-700 rounded-lg w-full mb-2"></div>
-            <div className="h-4 bg-gray-700 rounded-lg w-5/6 mb-4"></div>
-            <div className="h-48 bg-gray-800 rounded-lg mb-6"></div>
-            <div className="flex gap-4">
-              <div className="h-10 w-24 bg-gray-700 rounded-lg"></div>
-              <div className="h-10 w-24 bg-gray-700 rounded-lg"></div>
-            </div>
-          </div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center text-white">
+        Loading...
       </div>
     );
   }
 
-  if (!issue2)
+  if (!issue) {
     return (
-      <div className="relative min-h-screen text-white flex items-center justify-center">
-        <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
-        <p className="text-center">Issue not found.</p>
+      <div className="min-h-screen flex items-center justify-center text-white">
+        Issue not found
       </div>
     );
+  }
 
   return (
     <ProtectedRoute>
       <div className="relative min-h-screen text-white">
-        {/* FIXED BACKGROUND */}
         <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
 
-        {/* SCROLLABLE CONTENT */}
         <div className="relative p-4 md:p-6 flex flex-col items-center">
-          {/* Header */}
           <motion.h1
             initial={{ opacity: 0, y: -15 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-2xl md:text-3xl font-bold text-center mb-8"
+            className="text-2xl md:text-3xl font-bold mb-8"
           >
             Vote on Issue
           </motion.h1>
 
-          {/* Issue Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-[#14162d8a] backdrop-blur-xl shadow-lg border border-gray-800 rounded-2xl p-6 w-full max-w-lg text-white"
+            className="bg-[#14162d8a] backdrop-blur-xl border border-gray-800 rounded-2xl p-6 w-full max-w-lg"
           >
-            <h2 className="text-2xl font-bold">
-              {issue2.issue_type}
-            </h2>
-            <p className="text-gray-300 mt-3">{issue2.description}</p>
-            <p className="text-gray-400 mt-3 font-medium">
-              📍 {issue2.placename}
-            </p>
+            <h2 className="text-2xl font-bold">{issue.issue_type}</h2>
+            <p className="text-gray-300 mt-3">{issue.description}</p>
+            <p className="text-gray-400 mt-3">{issue.location.placeName}</p>
 
-            {issue2.image && (
-              <motion.img
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                src={issue2.image}
-                alt="Issue Image"
-                className="mt-5 rounded-xl border border-gray-700 w-full"
-              />
+            {/* IMAGE CAROUSEL */}
+            {issue.images?.length > 0 && (
+              <div className="mt-5">
+                <img
+                  src={issue.images[activeImage]}
+                  className="rounded-xl border w-full"
+                />
+                {issue.images.length > 1 && (
+                  <div className="flex gap-2 mt-3">
+                    {issue.images.map((img, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setActiveImage(i)}
+                        className={`border rounded-lg ${
+                          i === activeImage
+                            ? "border-white"
+                            : "border-gray-600 opacity-70"
+                        }`}
+                      >
+                        <img src={img} className="h-16 w-20 object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
 
-            {!isVoting ? (
-              <div className="mt-6 flex gap-4 justify-center">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleVoting(true)}
-                  className="px-6 py-3 bg-green-500 text-black font-semibold rounded-xl hover:bg-green-400 transition shadow-lg"
-                >
-                  ✅ Approve
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleVoting(false)}
-                  className="px-6 py-3 bg-red-500 text-white font-semibold rounded-xl hover:bg-red-400 transition shadow-lg"
-                >
-                  ❌ Reject
-                </motion.button>
-              </div>
+            {/* VOTE COUNTS */}
+            <div className="mt-4 flex justify-between text-sm text-gray-300">
+              <span>Approvals: {issue.publicValidation.approvals}</span>
+              <span>denials: {issue.publicValidation.rejections}</span>
+            </div>
+
+            {/* ACTIONS */}
+            {alreadyVoted ? (
+              <p className="mt-6 text-center text-yellow-400">
+                You already voted on this issue
+              </p>
             ) : (
-              <div className="mt-6 text-center">
-                <p className="text-gray-300 font-medium">Processing your vote...</p>
+              <div className="mt-6 flex gap-4 justify-center">
+                <button
+                  disabled={isVoting}
+                  onClick={() => handleVoting("APPROVE")}
+                  className="px-6 py-3 bg-green-500 rounded-xl font-semibold"
+                >
+                   Approve
+                </button>
+                <button
+                  disabled={isVoting}
+                  onClick={() => handleVoting("REJECT")}
+                  className="px-6 py-3 bg-red-500 rounded-xl font-semibold"
+                >
+                   Reject
+                </button>
               </div>
             )}
           </motion.div>

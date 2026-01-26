@@ -1,10 +1,10 @@
 "use client";
 
 import axios from "axios";
-import { useSearchParams } from "next/navigation";
-import { useRouter } from "next/navigation";
-import React, { Suspense, useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+
 export default function Page() {
   return (
     <Suspense fallback={<div className="text-white p-4">Loading...</div>}>
@@ -12,212 +12,227 @@ export default function Page() {
     </Suspense>
   );
 }
-export const BidAuth = () => {
-  const [selectedBidder, setSelectedBidder] = useState(null);
-  const [isLoadingData, setIsLoadingData] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
+
+function BidAuth() {
   const searchParams = useSearchParams();
-  const tenderData = searchParams.get("tender");
-  const tender = JSON.parse(tenderData);
-  const [tenders, setTenders] = useState(tender);
-  const [bids, setBids] = useState([]);
-  const [error, setError] = useState("");
   const router = useRouter();
 
+  const [tender, setTender] = useState(null);
+  const [bids, setBids] = useState([]);
+  const [selectedBid, setSelectedBid] = useState(null);
+
+  const [manualReason, setManualReason] = useState("");
+  const [search, setSearch] = useState("");
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   useEffect(() => {
-    const fetchData = async () => {
+    const tenderParam = searchParams.get("tender");
+    if (!tenderParam) return;
+
+    try {
+      setTender(JSON.parse(decodeURIComponent(tenderParam)));
+    } catch {
+      alert("Invalid tender data");
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!tender?._id) return;
+
+    const fetchBids = async () => {
       setIsLoadingData(true);
       try {
-        const response = await axios.get(`/api/bidding?tenderId=${tender._id}`);
-        setBids(response.data);
-        console.log(response.data);
-      } catch (error) {
-        console.error("Could not get bids", error);
-        setError("Could not get bids");
+        const res = await axios.get(`/api/bidding?tenderId=${tender._id}`);
+        setBids(res.data);
       } finally {
         setIsLoadingData(false);
       }
     };
 
-    fetchData();
-  }, []);
+    fetchBids();
+  }, [tender?._id]);
 
-  // const handleApproveBid = async () => {
-  //   if (!selectedBidder) {
-  //     alert("Please select a bidder to approve");
-  //     return;
-  //   }
+  const biddingClosed =
+    tender && new Date(tender.bidClosingDate).getTime() < Date.now();
 
-  //   setIsLoading(true);
+  const systemRecommendedBid = bids.find(
+    (b) => b.evaluation?.systemRecommended,
+  );
 
-  //   try {
-  //     console.log("selected bidder", selectedBidder);
-  //     const data = {
-  //       blockchainBidId: selectedBidder.blockchainBidId,
-  //       bidId: selectedBidder._id,
-  //       bidAmount: selectedBidder.bidAmount,
-  //       tenderId: selectedBidder.tenderId,
-  //       contractorId: selectedBidder.contractorId,
-  //     };
+  const acceptedBid = bids.find((b) => b.status === "Accepted");
 
-  //     const response = await fetch("/api/bid-approve", {
-  //       method: "POST",
-  //       body: JSON.stringify(data),
-  //     });
-  //     if (response.ok) {
-  //       console.log("Response:", response);
-  //       alert("Bid approved successfully!");
-  //     } else {
-  //       console.log("Error approving bid", response.error);
-  //     }
-  //   } catch (error) {
-  //     alert("Failed to approve bid");
-  //     console.error("Error approving bid:", error);
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
-  const closeTender = async () => {
-    setIsLoading(true);
+  const filteredBids = useMemo(() => {
+    return bids.filter((b) => {
+      const contractorName =
+        typeof b.contractorId === "object"
+          ? b.contractorId?.name || ""
+          : String(b.contractorId || "");
+
+      return (
+        contractorName.toLowerCase().includes(search.toLowerCase()) ||
+        String(b.bidAmount).includes(search)
+      );
+    });
+  }, [bids, search]);
+
+  const approveBid = async (bidId, reason = null) => {
+    setIsSubmitting(true);
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Authentication required");
 
     try {
-      const response = await fetch("/api/tender/close-tender", {
+      const res = await fetch("/api/bid-approve", {
         method: "POST",
-        body: JSON.stringify(tenders._id),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          tenderId: tender._id,
+          winningBidId: bidId,
+          manualReason: reason,
+        }),
       });
-      if (response.ok) {
-        router.push("/gov-sec");
-        console.log("Response:", response);
-        alert("Tender closed successfully!");
-      } else {
-        console.log("Error approving bid", response.error);
-      }
-    } catch (error) {
+
+      if (!res.ok) throw new Error();
+      alert("Winner approved & contract created");
+      router.refresh();
+    } catch {
       alert("Failed to approve bid");
-      console.error("Error approving bid:", error);
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
+
   return (
     <div className="relative min-h-screen text-white">
       <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
-      <div className="relative md:p-6 p-3">
-        {tenders.status === "Active" ? (
-          <motion.div
-            initial={{ opacity: 0, y: -15 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="my-5 py-2 text-2xl font-semibold text-center"
-          >
-            Bidding Process Ongoing
-          </motion.div>
-        ) : tenders.status === "Completed" ? (
-          <motion.div
-            initial={{ opacity: 0, y: -15 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="my-5 py-2 text-center"
-          >
-            <h1 className="text-2xl font-semibold mb-4">Bidding Completed</h1>
 
-            <h1 className="text-xl font-semibold mb-4">Winner</h1>
-
-            <div className="mt-4 max-w-3xl mx-auto">
-              {bids.filter((bid) => bid.status === "Accepted").length > 0 ? (
-                bids
-                  .filter((bid) => bid.status === "Accepted")
-                  .map((bid) => (
-                    <motion.div
-                      key={bid._id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="p-6 bg-[#14162d8a] backdrop-blur-xl rounded-2xl shadow-md border-2 border-white mb-4"
-                    >
-                      <h2 className="text-lg font-semibold text-white">
-                        {bid.name}
-                      </h2>
-                      <h2 className="text-md text-gray-400">
-                        {bid.contractorId}
-                      </h2>
-                      <p className="text-md text-gray-300">
-                        Bid Amount: ₹{bid.bidAmount}
-                      </p>
-                      <p className="text-sm text-green-400 font-medium mt-2">
-                        ✅ Status: Accepted
-                      </p>
-                    </motion.div>
-                  ))
-              ) : (
-                <div className="text-gray-400">No accepted bid found.</div>
-              )}
+      <div className="relative max-w-5xl mx-auto p-4 md:p-6 space-y-6">
+        {tender && (
+          <div className="bg-[#14162d8a] backdrop-blur-xl border border-gray-800 rounded-2xl p-6">
+            <h2 className="text-xl font-bold">{tender.title}</h2>
+            <div className="grid md:grid-cols-2 gap-2 text-sm text-gray-300 mt-2">
+              <p>
+                Budget: ₹{tender.minBidAmount} – ₹{tender.maxBidAmount}
+              </p>
+              <p>Bids Received: {bids.length}</p>
+              <p>
+                Bid Closing: {new Date(tender.bidClosingDate).toLocaleString()}
+              </p>
+              <p>Status: {biddingClosed ? "Bidding Closed" : "Ongoing"}</p>
             </div>
-          </motion.div>
-        ) : null}
+          </div>
+        )}
 
-        <motion.h1
-          initial={{ opacity: 0, y: -15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="text-2xl font-bold text-center mb-6"
-        >
-          Submitted Bids
-        </motion.h1>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by contractor name or bid amount..."
+          className="w-full px-4 py-3 bg-[#14162d8a] backdrop-blur-xl border border-gray-800 rounded-xl"
+        />
+
+        {biddingClosed && systemRecommendedBid && !acceptedBid && (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.95 }}
+            disabled={isSubmitting}
+            onClick={() => approveBid(systemRecommendedBid._id)}
+            className="w-full bg-green-500 text-black py-3 rounded-xl font-semibold"
+          >
+            Accept System Recommended Bid
+          </motion.button>
+        )}
+
         {isLoadingData ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl border border-gray-800 text-center max-w-3xl mx-auto"
-          >
-            <div className="text-gray-300">Loading Data...</div>
-          </motion.div>
+          <div className="bg-[#14162d8a] p-6 rounded-2xl text-center">
+            Loading bids...
+          </div>
         ) : (
-          <div className="max-w-3xl mx-auto">
-            <div className="space-y-4">
-              {bids.map((bid, index) => (
-                <motion.div
-                  key={bid._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  whileHover={{ y: -4 }}
-                  onClick={() => setSelectedBidder(bid)}
-                  className={`p-6 bg-[#14162d8a] backdrop-blur-xl rounded-2xl shadow-md cursor-pointer border-2 transition duration-200 ${
-                    selectedBidder?._id === bid._id
-                      ? "border-white"
+          <div className="space-y-4">
+            {filteredBids.map((bid) => (
+              <div
+                key={bid._id}
+                onClick={() => setSelectedBid(bid)}
+                className={`p-6 rounded-2xl border cursor-pointer transition
+                  ${
+                    selectedBid?._id === bid._id
+                      ? "ring-2 ring-white"
                       : "border-gray-800"
-                  } hover:border-gray-600`}
-                >
-                  <h2 className="text-lg font-semibold text-white">
-                    {bid.name}
-                  </h2>
-                  <h2 className="text-md text-gray-400">{bid.contractorId}</h2>
-                  <p className="text-md text-gray-300">
-                    Bid Amount: ₹{bid.bidAmount}
+                  }
+                  bg-[#14162d8a]`}
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold">
+                      {bid.contractorId?.name || "Unknown Contractor"}
+                    </h3>
+                    <p className="text-xs text-gray-400">
+                      Experience:{" "}
+                      {bid.contractorId?.experienceYears ?? bid.experienceYears}{" "}
+                      yrs • Rating:{" "}
+                      {bid.contractorId?.contractorRating ??
+                        bid.contractorRating}
+                    </p>
+                  </div>
+
+                  {bid.evaluation?.systemRecommended && (
+                    <span className="text-xs bg-green-500 text-black px-3 py-1 rounded-full">
+                      System Recommended
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-3 text-sm text-gray-300 space-y-1">
+                  <p> Amount: ₹{bid.bidAmount}</p>
+                  <p> Timeline: {bid.timeline || "—"}</p>
+                  <p> Score: {bid.score ?? "—"}</p>
+                  <p>
+                    Status: <span className="font-semibold">{bid.status}</span>
                   </p>
-                </motion.div>
-              ))}
-            </div>
-            {bids.length > 0 ? (
-              tenders.status === "Completed" ? (
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={closeTender}
-                  disabled={isLoading}
-                  className="mt-6 w-full bg-white text-black py-3 rounded-xl font-semibold disabled:opacity-50 transition duration-200 hover:shadow-lg"
-                >
-                  Close Tender
-                </motion.button>
-              ) : null
-            ) : (
-              <div className="mt-6 text-center text-gray-400 bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl border border-gray-800">
-                No Bids for this tender
+                </div>
+
+                {bid.proposalDocument && (
+                  <a
+                    href={bid.proposalDocument}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block mt-3 bg-white text-black px-4 py-1 rounded-lg text-sm font-semibold"
+                  >
+                    View Proposal
+                  </a>
+                )}
               </div>
-            )}
+            ))}
+          </div>
+        )}
+
+        {biddingClosed && selectedBid && !acceptedBid && (
+          <div className="bg-[#14162d8a] border border-gray-800 rounded-2xl p-6 space-y-3">
+            <h3 className="font-semibold">
+              Manual Selection Reason (Required)
+            </h3>
+
+            <textarea
+              value={manualReason}
+              onChange={(e) => setManualReason(e.target.value)}
+              placeholder="Explain why this bid is selected over the system recommendation..."
+              className="w-full p-3 rounded-xl bg-[#0f1224] border border-gray-700"
+            />
+
+            <motion.button
+              disabled={!manualReason || isSubmitting}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => approveBid(selectedBid._id, manualReason)}
+              className="w-full bg-white text-black py-3 rounded-xl font-semibold disabled:opacity-50"
+            >
+              Approve Selected Bid (Manual)
+            </motion.button>
           </div>
         )}
       </div>
     </div>
   );
-};
-
-// export default BidAuth;
+}

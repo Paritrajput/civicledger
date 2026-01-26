@@ -20,7 +20,7 @@ export default function ContractVotingLayout({ children }) {
   }, [user, loading]);
 
   if (loading) {
-    return <div className="text-white p-4">Loading...</div>;
+    return <div className="text-white p-14">Loading...</div>;
   }
 
   if (!isAuthenticated) return null;

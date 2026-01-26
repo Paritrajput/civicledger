@@ -7,7 +7,6 @@ export async function POST(req) {
 
   try {
     const { contractorId } = await req.json();
-    console.log(contractorId);
 
     if (!contractorId) {
       return new Response(
@@ -16,25 +15,43 @@ export async function POST(req) {
       );
     }
 
-    // Find all bids made by the contractor
-    const bids = await Bid.find({ contractorId });
 
-    // Fetch related tender info
-    const populatedBids = await Promise.all(
-      bids.map(async (bid) => {
-        const tender = await Tender.findById(bid.tenderId);
-        return {
-          _id: bid._id,
-          bidAmount: bid.bidAmount,
-          status: bid.experience,
-          timestamp: bid.timestamp,
-        };
+    const bids = await Bid.find({ contractorId })
+      .populate({
+        path: "tenderId",
+        select: "title description location",
       })
-    );
+      .sort({ createdAt: -1 });
 
-    return new Response(JSON.stringify(populatedBids), { status: 200 });
+    const response = bids.map((bid) => ({
+      _id: bid._id,
+
+   
+      tenderId: bid.tenderId?._id,
+      tenderTitle: bid.tenderId?.title,
+      tenderDescription: bid.tenderId?.description,
+      tenderLocation: bid.tenderId?.location,
+
+
+      bidAmount: bid.bidAmount,
+      experience: bid.experience,
+      documentsSubmitted: bid.documents?.length || 0,
+
+      
+      status: bid.status || "PENDING", // WON | LOST | REJECTED | PENDING
+      selectionType: bid.selectionType || "SYSTEM",
+      systemScore: bid.systemScore,
+      rank: bid.rank,
+
+     
+      createdAt: bid.createdAt,
+      evaluatedAt: bid.evaluatedAt,
+    }));
+
+    return new Response(JSON.stringify(response), { status: 200 });
   } catch (error) {
-    console.error(error);
+    console.error("Bid history error:", error);
+
     return new Response(
       JSON.stringify({ error: "Failed to fetch bid history" }),
       { status: 500 }

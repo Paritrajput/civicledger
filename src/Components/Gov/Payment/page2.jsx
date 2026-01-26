@@ -1,302 +1,394 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "axios";
 import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
-
-
-export default function AdminPaymentPage() {
+export default function ContractTrackerPage() {
   const searchParams = useSearchParams();
   const contractParam = searchParams.get("contract");
-  const contractData = contractParam
-    ? JSON.parse(decodeURIComponent(contractParam))
-    : null;
+  const contractDetails = contractParam ? JSON.parse(contractParam) : null;
 
-  const [contractor, setContractor] = useState(null);
-  const [rating, setRating] = useState("");
-  const [payments, setPayments] = useState([]);
+  if (!contractDetails) {
+    return <CenteredText text="Invalid contract data" error />;
+  }
 
+  const contractId = contractDetails._id;
+
+  const [contract, setContract] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const [showVoteModal, setShowVoteModal] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState(null);
-  const [vote, setVote] = useState("approve");
-  const [review, setReview] = useState("");
-  const [image, setImage] = useState(null);
+  const [overrideTarget, setOverrideTarget] = useState(null);
+  const [overrideReason, setOverrideReason] = useState("");
 
-  /* Fetch Payments*/
+  /* ---------------- FETCH CONTRACT ---------------- */
 
-  const fetchPayments = async () => {
+  const fetchContract = async () => {
     try {
-      const res = await fetch(
-        `/api/payment/get-payments/${contractData._id}`
-      );
+      const res = await fetch(`/api/contracts/${contractId}`);
       const data = await res.json();
-      setPayments(data || []);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to load payments");
+      if (!res.ok) throw new Error();
+      setContract(data.contract);
+    } catch {
+      alert("Failed to load contract");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (contractData?._id) fetchPayments();
-  }, [contractData?._id]);
-
-  /* Fetch Contractor */
-
-  useEffect(() => {
-    if (!contractData?.winner) return;
-
-    axios
-      .post("/api/contractor/get-profile", {
-        contractorId: contractData.winner,
-      })
-      .then((res) => setContractor(res.data))
-      .catch(() => setError("Failed to load contractor"));
-  }, [contractData?.winner]);
-
-
-
-  const submitVote = async () => {
-    if (!selectedPayment) return;
-
-    const formData = new FormData();
-    formData.append("contractId", contractData._id);
-    formData.append("paymentId", selectedPayment._id);
-    formData.append("contractorId", selectedPayment.contractorId);
-    formData.append("vote", vote);
-    formData.append("review", review);
-    if (image) formData.append("image", image);
-
-    try {
-      await axios.put(
-        "/api/contract-voting/public-voting",
-        formData
-      );
-      alert("Vote submitted");
-      setShowVoteModal(false);
-      fetchPayments();
-    } catch (err) {
-      alert("Vote submission failed");
-    }
-  };
-
-  /* ---------------- Submit Rating ---------------- */
-
-  const submitRating = async () => {
-    if (!rating || rating < 1 || rating > 5) return;
-
-    try {
-      await axios.post("/api/contractor/rating", {
-        contractorId: contractData.winner,
-        rating: Number(rating),
-      });
-      alert("Rating submitted");
-      setRating("");
-    } catch {
-      alert("Failed to submit rating");
-    }
-  };
-
-  const progress =
-    contractData?.bidAmount
-      ? (contractData.paidAmount / contractData.bidAmount) * 100
-      : 0;
+    fetchContract();
+  }, [contractId]);
 
   
 
+  const finalizeMilestone = async ({
+    milestoneId,
+    action,
+    overrideReason,
+  }) => {
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/contracts/milestones/finalize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contractId,
+          milestoneId,
+          action, // ACCEPT | OVERRIDE
+          overrideReason,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      alert(data.message || "Decision applied");
+      setOverrideTarget(null);
+      setOverrideReason("");
+      fetchContract();
+    } catch (err) {
+      alert(err.message || "Action failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+
+
+  if (loading) {
+    return <CenteredText text="Loading contract..." />;
+  }
+
+  if (!contract) {
+    return <CenteredText text="Contract not found" error />;
+  }
+
+  const remaining =
+    (contract.contractValue || 0) - (contract.paidAmount || 0);
+
   return (
-    <div className="relative min-h-screen text-white p-4 md:p-6">
-      <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
+    <div className="relative min-h-screen text-white pb-16">
+      <Background />
 
-      <motion.h1
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-2xl md:text-3xl font-bold text-center mb-8"
-      >
-        Contract Administration
-      </motion.h1>
+      <div className="relative max-w-6xl mx-auto p-4 md:p-6 space-y-8">
+        <Header />
 
-      {/* Contractor */}
-      {contractor && (
-        <GlassCard title="Contractor Details">
-          <p>Name: {contractor.name}</p>
-          <p>Email: {contractor.email}</p>
-          <p>Experience: {contractor.experienceYears} yrs</p>
+        {/* CONTRACTOR */}
+        <Card title="Contractor Overview">
+          <InfoRow label="Contractor ID" value={contract.contractor?._id} />
+          <InfoRow label="Name" value={contract.contractor?.name} />
+          <InfoRow
+            label="Experience"
+            value={`${contract.contractor?.experienceYears || 0} years`}
+          />
+          <InfoRow
+            label="Rating"
+            value={
+              contract.contractor?.contractorRating?.average
+                ? `${contract.contractor.contractorRating.average.toFixed(
+                    1
+                  )} ⭐`
+                : "Not rated"
+            }
+          />
+        </Card>
 
-          <div className="flex gap-3 mt-3">
-            <input
-              type="number"
-              min="1"
-              max="5"
-              value={rating}
-              onChange={(e) => setRating(e.target.value)}
-              className="bg-[#0f1224] border border-gray-700 rounded-xl px-3 py-2 w-24"
+        
+        <Card title="Contract Overview">
+          <InfoRow label="Contract ID" value={contract.contractId} />
+          <InfoRow label="Status" value={contract.status} />
+          <InfoRow
+            label="Milestone Plan"
+            value={contract.milestonePlanStatus}
+          />
+          <InfoRow
+            label="Award Method"
+            value={
+              contract.awardMeta?.selectionType === "SYSTEM"
+                ? "System Recommended"
+                : "Manual Selection"
+            }
+          />
+        </Card>
+
+        
+        <Card title="Financial Summary">
+          <InfoRow
+            label="Total Contract Value"
+            value={`₹${contract.contractValue}`}
+          />
+          <InfoRow
+            label="Paid Amount"
+            value={`₹${contract.paidAmount}`}
+          />
+          <InfoRow
+            label="Remaining Amount"
+            value={`₹${remaining}`}
+          />
+          <ProgressBar
+            value={contract.paidAmount}
+            max={contract.contractValue}
+          />
+        </Card>
+
+        {/* MILESTONES */}
+        <Card title="Milestone Progress">
+          {contract.milestones?.length === 0 ? (
+            <Notice text="Milestones not finalized yet." />
+          ) : (
+            <MilestoneTimeline
+              milestones={contract.milestones}
+              submitting={submitting}
+              onAccept={(id) =>
+                finalizeMilestone({ milestoneId: id, action: "ACCEPT" })
+              }
+              onOverride={(m) => setOverrideTarget(m)}
             />
-            <button
-              onClick={submitRating}
-              className="bg-white text-black px-4 py-2 rounded-xl font-semibold"
-            >
-              Rate
-            </button>
-          </div>
-        </GlassCard>
-      )}
+          )}
+        </Card>
 
-      {/* Contract */}
-      <GlassCard title="Contract Overview">
-        <p>ID: {contractData._id}</p>
-        <p>Total Budget: ₹{contractData.bidAmount}</p>
+        {/* OVERRIDE MODAL */}
+        {overrideTarget && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+            <div className="bg-[#14162d] p-6 rounded-xl w-full max-w-md space-y-4">
+              <h3 className="text-lg font-semibold">
+                Override System Decision
+              </h3>
 
-        <div className="mt-3">
-          <div className="w-full bg-gray-700 h-3 rounded-xl overflow-hidden">
-            <div
-              className="bg-green-500 h-3"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <p className="text-sm mt-1 text-gray-400">
-            {progress.toFixed(2)}% Completed
-          </p>
-        </div>
-      </GlassCard>
+              <textarea
+                value={overrideReason}
+                onChange={(e) => setOverrideReason(e.target.value)}
+                placeholder="Reason for override"
+                className="w-full bg-[#0f1224] p-3 rounded-lg border border-gray-700"
+              />
 
-      {/* Pending Payments */}
-      <Section title="Pending Payment Requests">
-        {loading ? (
-          <p className="text-gray-400">Loading…</p>
-        ) : (
-          payments
-            .filter((p) => p.status === "Pending")
-            .map((p) => (
-              <GlassCard key={p._id}>
-                <p>Requested: ₹{p.paymentMade}</p>
-                <p>Reason: {p.reason}</p>
+              <div className="flex gap-3">
+                <button
+                  disabled={submitting}
+                  onClick={() =>
+                    finalizeMilestone({
+                      milestoneId: overrideTarget._id,
+                      action: "OVERRIDE",
+                      overrideReason,
+                    })
+                  }
+                  className="flex-1 bg-red-500 text-white py-2 rounded-lg font-semibold"
+                >
+                  Submit Override
+                </button>
 
                 <button
-                  onClick={() => {
-                    setSelectedPayment(p);
-                    setShowVoteModal(true);
-                  }}
-                  className="mt-3 bg-white text-black px-4 py-2 rounded-xl"
+                  onClick={() => setOverrideTarget(null)}
+                  className="flex-1 bg-gray-600 py-2 rounded-lg"
                 >
-                  Vote
+                  Cancel
                 </button>
-              </GlassCard>
-            ))
+              </div>
+            </div>
+          </div>
         )}
-      </Section>
 
-      {/* History */}
-      <Section title="Payment History">
-        {payments
-          .filter((p) => p.status === "Completed")
-          .map((p) => (
-            <GlassCard key={p._id}>
-              <p>Paid: ₹{p.paymentMade}</p>
-              <p>Reason: {p.reason}</p>
-            </GlassCard>
-          ))}
-      </Section>
-
-      {/* Vote Modal */}
-      {showVoteModal && (
-        <Modal onClose={() => setShowVoteModal(false)}>
-          <h2 className="text-xl font-semibold mb-4">
-            Cast Vote
-          </h2>
-
-          <div className="flex gap-4 mb-3">
-            <label>
-              <input
-                type="radio"
-                checked={vote === "approve"}
-                onChange={() => setVote("approve")}
-              />{" "}
-              Approve
-            </label>
-            <label>
-              <input
-                type="radio"
-                checked={vote === "reject"}
-                onChange={() => setVote("reject")}
-              />{" "}
-              Reject
-            </label>
-          </div>
-
-          <textarea
-            value={review}
-            onChange={(e) => setReview(e.target.value)}
-            className="w-full bg-[#0f1224] border border-gray-700 rounded-xl p-2 mb-3"
-            placeholder="Review"
-          />
-
-          <input
-            type="file"
-            onChange={(e) => setImage(e.target.files[0])}
-          />
-
-          <div className="flex justify-end gap-3 mt-4">
-            <button
-              onClick={() => setShowVoteModal(false)}
-              className="px-4 py-2 bg-gray-700 rounded-xl"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={submitVote}
-              className="px-4 py-2 bg-white text-black rounded-xl font-semibold"
-            >
-              Submit
-            </button>
-          </div>
-        </Modal>
-      )}
-    </div>
-  );
-}
-
-/*Reusable Components*/
-
-function GlassCard({ title, children }) {
-  return (
-    <div className="bg-[#14162d8a] backdrop-blur-xl border border-gray-800 rounded-2xl p-6 mb-6">
-      {title && (
-        <h2 className="text-xl font-semibold mb-4">{title}</h2>
-      )}
-      <div className="space-y-2 text-gray-300">{children}</div>
-    </div>
-  );
-}
-
-function Section({ title, children }) {
-  return (
-    <div className="mb-8">
-      <h2 className="text-xl font-semibold mb-4">{title}</h2>
-      {children}
-    </div>
-  );
-}
-
-function Modal({ children, onClose }) {
-  return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-[#14162d8a] backdrop-blur-xl border border-gray-800 rounded-2xl p-6 w-full max-w-md">
-        {children}
-        <button
-          onClick={onClose}
-          className="mt-4 text-sm text-gray-400 underline"
-        >
-          Close
-        </button>
+        {/* BLOCKCHAIN */}
+        {/* {contract.blockchain?.transactionHash && (
+          <Card title="Blockchain Record">
+            <InfoRow
+              label="Transaction Hash"
+              value={contract.blockchain.transactionHash}
+            />
+            <InfoRow
+              label="Network"
+              value={contract.blockchain.network}
+            />
+          </Card>
+        )} */}
       </div>
+    </div>
+  );
+}
+
+
+
+function MilestoneTimeline({ milestones, submitting, onAccept, onOverride }) {
+  return (
+    <div className="space-y-4">
+      {milestones.map((m) => (
+        <div
+          key={m._id}
+          className="bg-[#0f1224] border border-gray-700 rounded-xl p-4 space-y-2"
+        >
+          <div className="flex justify-between items-center">
+            <h3 className="font-semibold">{m.title}</h3>
+            <StatusBadge status={m.status} />
+          </div>
+
+          <p className="text-sm text-gray-400">{m.description}</p>
+
+          {m.finalEvaluation && (
+            <div className="bg-[#14162d] p-3 rounded-lg text-sm mt-2">
+              <p>AI Score: {m.finalEvaluation.aiScore}</p>
+              <p>Public Score: {m.finalEvaluation.publicScore}</p>
+              <p>Gov Score: {m.finalEvaluation.govScore}</p>
+
+              <p className="font-semibold mt-1">
+                Final Score: {m.finalEvaluation.finalScore}
+              </p>
+
+              <span
+                className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold ${
+                  m.finalEvaluation.recommended
+                    ? "bg-green-500 text-black"
+                    : "bg-red-500 text-white"
+                }`}
+              >
+                {m.finalEvaluation.recommended
+                  ? "SYSTEM RECOMMENDED"
+                  : "NOT RECOMMENDED"}
+              </span>
+            </div>
+          )}
+
+          {m.status === "GovReview" && m.finalEvaluation && (
+            <div className="flex gap-3 mt-4">
+              <button
+                disabled={submitting}
+                onClick={() => onAccept(m._id)}
+                className="bg-green-500 text-black px-4 py-2 rounded-xl font-semibold"
+              >
+                Accept System Decision
+              </button>
+
+              <button
+                disabled={submitting}
+                onClick={() => onOverride(m)}
+                className="bg-red-500 text-white px-4 py-2 rounded-xl font-semibold"
+              >
+                Override Decision
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StatusBadge({ status }) {
+  const map = {
+    Pending: "bg-gray-500",
+    InProgress: "bg-blue-500",
+    Submitted: "bg-yellow-500",
+    UnderReview: "bg-purple-500",
+    GovReview: "bg-orange-500",
+    Approved: "bg-green-500",
+    Rejected: "bg-red-500",
+    Paid: "bg-emerald-500",
+  };
+
+  return (
+    <span
+      className={`text-xs px-3 py-1 rounded-full text-black font-semibold ${
+        map[status] || "bg-gray-400"
+      }`}
+    >
+      {status}
+    </span>
+  );
+}
+
+
+
+function Background() {
+  return (
+    <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
+  );
+}
+
+function Header() {
+  return (
+    <motion.h1
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="text-2xl md:text-3xl font-bold text-center"
+    >
+      Contract Progress Tracker
+    </motion.h1>
+  );
+}
+
+function Card({ title, children }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-[#14162d8a] backdrop-blur-xl border border-gray-800 rounded-2xl p-6 space-y-4"
+    >
+      <h2 className="text-xl font-semibold text-center">{title}</h2>
+      {children}
+    </motion.div>
+  );
+}
+
+function InfoRow({ label, value }) {
+  return (
+    <div className="flex justify-between border-b border-gray-700 py-2 text-sm">
+      <span className="text-gray-400">{label}</span>
+      <span className="font-medium">{value}</span>
+    </div>
+  );
+}
+
+function ProgressBar({ value, max }) {
+  const percent = max ? Math.round((value / max) * 100) : 0;
+  return (
+    <div className="mt-3">
+      <div className="flex justify-between text-xs mb-1">
+        <span>Progress</span>
+        <span>{percent}%</span>
+      </div>
+      <div className="w-full bg-gray-800 rounded-full h-2">
+        <div
+          className="bg-green-500 h-2 rounded-full"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function Notice({ text }) {
+  return <div className="text-center text-gray-400">{text}</div>;
+}
+
+function CenteredText({ text, error }) {
+  return (
+    <div
+      className={`min-h-screen flex items-center justify-center ${
+        error ? "text-red-400" : "text-white"
+      }`}
+    >
+      {text}
     </div>
   );
 }

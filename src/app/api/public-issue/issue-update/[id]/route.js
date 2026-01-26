@@ -7,12 +7,12 @@ export async function PUT(req, { params }) {
     try {
         await dbConnect();
 
-        const { id } = params; // Correct way to get the issue ID
+        const { id } = params;
 
         // Find the issue and update status
         const updatedIssue = await Issue.findByIdAndUpdate(
             id,
-            { status: "reject" },
+            { status: "GOV_REJECTED" },
             { new: true } 
         );
 

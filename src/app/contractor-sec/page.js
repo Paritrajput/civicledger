@@ -8,19 +8,19 @@ import { useRouter } from "next/navigation";
 
 export default function ContractorHomePage() {
   const router = useRouter();
-  const { user } = useGovUser();
+  const { user, setUser } = useGovUser();
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    setUser(null);
     router.push("/login");
   };
 
   return (
     <main className="relative min-h-screen text-white">
-      {/* Fixed Background */}
+    
       <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
 
-      {/* Hero */}
       <section className="px-6 md:px-20 pt-20 pb-14 text-center space-y-6">
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
@@ -60,7 +60,6 @@ export default function ContractorHomePage() {
         </div>
       </section>
 
-      {/* Tools Section */}
       <section className="px-6 md:px-20 pb-24">
         <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
           Contractor Tools

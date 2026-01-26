@@ -12,7 +12,9 @@ export default function AdminLogin() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { user, setUser } = useGovUser();
+  const { user, setUser,syncUser } = useGovUser();
+  
+
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -31,6 +33,7 @@ export default function AdminLogin() {
         if (token) {
           const decoded = jwtDecode(token);
           setUser(decoded);
+          syncUser(); 
           setLoading(false);
           router.push("/gov-sec");
         }

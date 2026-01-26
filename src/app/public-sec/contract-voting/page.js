@@ -1,312 +1,430 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import axios from "axios";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import MilestoneTracker from "@/Components/People/voting";
 import ProtectedRoute from "@/Components/ProtectedRoutes/protected-routes";
+import { useGovUser } from "@/Context/govUser";
+import { useNotification } from "@/Context/NotificationContext";
+
 export default function Page() {
   return (
     <Suspense fallback={<div className="text-white p-4">Loading...</div>}>
-      <AdminPaymentPage />
+      <PublicContractDashboard />
     </Suspense>
   );
 }
-export const AdminPaymentPage = () => {
+
+function PublicContractDashboard() {
   const searchParams = useSearchParams();
-  const contractParam = searchParams.get("contract");
-  const contractData = contractParam
-    ? JSON.parse(decodeURIComponent(contractParam))
-    : null;
+  const contractId = searchParams.get("contractId");
 
-  console.log(contractData);
-  console.log("Contract Data milestones:", contractData.milestones);
-
-  const [payments, setPayments] = useState([]);
+  const [contract, setContract] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [requestedPayments, setRequestedPayments] = useState([]);
-  const [tenders, setTenders] = useState([]);
-  const [myTender, setMyTender] = useState(null);
-  const [contractor, setContractor] = useState(null);
-  const [contractorRating, setContractorRating] = useState(null);
+  const { user } = useGovUser();
+  const { success, warning } = useNotification;
 
-  const [showModal, setShowModal] = useState(false);
-  const [vote, setVote] = useState("approve");
-  const [review, setReview] = useState("");
-  const [image, setImage] = useState(null);
-
-  const handleSubmit = () => {
-    console.log("Vote:", vote);
-    console.log("Review:", review);
-    console.log("Image:", image);
-    // You can now send this data to your backend
-    setShowModal(false);
-  };
-
+  /* ---------------- FETCH CONTRACT ---------------- */
   useEffect(() => {
-    const fetchContractor = async () => {
-      if (!contractData.winner) return;
+    if (!contractId) return;
 
+    const fetchContract = async () => {
       try {
-        console.log(contractData.winner);
-        const response = await axios.post("/api/contractor/get-profile", {
-          contractorId: contractData.winner,
-        });
-        console.log("Contractor Data:", response.data);
+        const res = await fetch(`/api/contracts/${contractId}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error();
 
-        setContractor(response.data);
-        setContractorRating(response.data.contractorRating);
-      } catch (error) {
-        console.error("Could not get contractor", error);
-        setError("Could not get contractor");
+        setContract(data.contract);
+      } catch {
+        setError("Failed to load contract");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchContractor();
-  }, [contractData.winner]);
+    fetchContract();
+  }, [contractId]);
 
-  const [newRating, setNewRating] = useState("");
+  if (loading) {
+    return <div className="text-white text-center p-10">Loading…</div>;
+  }
 
-  const submitRating = async () => {
-    if (!newRating || newRating < 1 || newRating > 5) {
-      alert("Please enter a valid rating between 1 and 5.");
-      return;
-    }
+  if (!contract) {
+    return <div className="text-red-400 text-center p-10">{error}</div>;
+  }
 
-    try {
-      await axios.post("/api/contractor/rating", {
-        contractorId: contractData.winner,
-        userId: "currentUserId",
-        rating: parseInt(newRating),
-      });
-      alert("Rating submitted!");
+  const totalMilestones = contract.milestones.length;
+  const completedMilestones = contract.milestones.filter(
+    (m) => m.status === "Paid"|| m.status === "Approved",
+  ).length;
 
-      setNewRating("");
-    } catch (error) {
-      console.error("Failed to submit rating", error);
-      alert("Failed to submit rating.");
-    }
-  };
-
-  useEffect(() => {
-    const fetchTenders = async () => {
-      try {
-        const response = await axios.get("/api/tender/get-tender");
-        setTenders(response.data);
-        console.log("Tenders Data:", response.data);
-      } catch (error) {
-        console.error("Could not get tenders", error);
-        setError("Could not get tenders");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTenders();
-  }, []);
-
-  useEffect(() => {
-    if (tenders.length > 0) {
-      const foundTender = tenders.find((m) => m._id === contractData.tenderId);
-      setMyTender(foundTender);
-    }
-  }, [tenders, contractData.tenderId]);
-
-  const getPayments = async () => {
-    if (!contractData._id) return;
-
-    try {
-      const response = await fetch(
-        `/api/payment/get-payments/${contractData._id}`,
-        {
-          method: "GET",
-        },
-      );
-
-      const data = await response.json();
-      if (response.ok) {
-        console.log("Payments Data:", data);
-        setRequestedPayments(data);
-      } else {
-        setError("No payment history found.");
-      }
-    } catch (error) {
-      console.error("Failed to fetch payments", error);
-      setError("Failed to load payment history.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    getPayments();
-  }, [contractData._id]);
-
-  const totalPaymentsMade = requestedPayments.reduce(
-    (sum, payment) => sum + payment.paymentMade,
-    0,
-  );
-  const progressPercentage = contractData.bidAmount
-    ? (totalPaymentsMade / contractData.bidAmount) * 100
-    : 0;
+  const progress =
+    totalMilestones === 0
+      ? 0
+      : Math.round((completedMilestones / totalMilestones) * 100);
 
   return (
     <ProtectedRoute>
       <div className="relative min-h-screen text-white">
         <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
-        <div className="relative p-4 md:p-6">
+
+        <div className="relative max-w-6xl mx-auto p-4 md:p-6 space-y-8">
+          {/* HEADER */}
           <motion.h1
             initial={{ opacity: 0, y: -15 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-3xl font-bold text-center mb-6"
+            className="text-3xl font-bold text-center"
           >
-            Contract Details
+            Public Contract Dashboard
           </motion.h1>
 
-          {contractor ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl shadow-md mb-6 flex max-md:flex-col gap-5 md:gap-20 border border-gray-800"
-            >
-              <div>
-                <h2 className="text-2xl font-semibold mb-4">
-                  Contractor Details
-                </h2>
-                <p className="text-gray-300">Name: {contractor.name}</p>
-                <p className="text-gray-300">Email: {contractor.email}</p>
-                <p className="text-gray-300">
-                  Experience: {contractor.experienceYears || 0} years
-                </p>
-                <p className="text-yellow-400 font-semibold mt-2">
-                  Rating: {contractorRating || 0} ⭐
-                </p>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-3">
-                  Rate the Contractor
-                </h3>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    min="1"
-                    max="5"
-                    className="p-3 bg-[#0f1224] border border-gray-700 text-white rounded-xl focus:outline-none focus:border-gray-500"
-                    value={newRating}
-                    onChange={(e) => setNewRating(e.target.value)}
-                  />
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="bg-white text-black px-6 py-3 rounded-xl font-semibold transition"
-                    onClick={submitRating}
-                  >
-                    Submit Rating
-                  </motion.button>
-                </div>
-              </div>
-            </motion.div>
-          ) : (
-            <p className="text-gray-400 text-center">
-              Loading contractor details...
-            </p>
-          )}
+          <Card title="Contract Summary">
+            <InfoRow label="Contract ID" value={contract.contractId} />
+            <InfoRow label="Status" value={contract.status} />
+            <InfoRow
+              label="Contract Value"
+              value={`₹${contract.contractValue}`}
+            />
+            <InfoRow label="Paid Amount" value={`₹${contract.paidAmount}`} />
+            <InfoRow
+              label="Milestone Plan"
+              value={contract.milestonePlanStatus}
+            />
+          </Card>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl shadow-md mb-6 border border-gray-800"
-          >
-            <h2 className="text-2xl font-semibold mb-4">Contract Details</h2>
-            <p className="text-gray-300 break-all">ID: {contractData._id}</p>
-            <p className="text-gray-300">
-              Contract Title: {myTender?.title || "N/A"}
-            </p>
-            <p className="text-gray-300">
-              Contract Description: {myTender?.description || "N/A"}
-            </p>
-            <p className="text-gray-300">
-              Total Budget: ₹{contractData.bidAmount}
-            </p>
-          </motion.div>
+          <Card title="Contractor Information">
+            <div className="space-y-2 text-sm text-gray-300">
+              <InfoRow
+                label="Name"
+                value={contract.contractor?.name || "N/A"}
+              />
+              <InfoRow
+                label="Experience"
+                value={`${contract.contractor?.experienceYears || 0} years`}
+              />
+              <InfoRow
+                label="Rating"
+                value={
+                  contract.contractor?.contractorRating?.average
+                    ? `${contract.contractor.contractorRating.average.toFixed(1)} ⭐ 
+             (${contract.contractor.contractorRating.count} reviews)`
+                    : "Not rated yet"
+                }
+              />
+            </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl shadow-md mb-6 border border-gray-800"
-          >
-            <h3 className="text-lg font-semibold mb-4">Contract Progress</h3>
-            <div className="w-full bg-gray-800/50 h-4 rounded-full overflow-hidden">
+            <PublicRating
+              contractorId={contract.contractor?._id}
+              contractId={contract._id}
+              userId={user.id}
+            />
+          </Card>
+
+          {/* PROGRESS */}
+          <Card title="Overall Progress">
+            <div className="w-full bg-gray-800 h-3 rounded-full">
               <motion.div
-                className="bg-gradient-to-r from-emerald-500 to-teal-400 h-4 rounded-full"
                 initial={{ width: 0 }}
-                animate={{ width: `${progressPercentage}%` }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-              ></motion.div>
+                animate={{ width: `${progress}%` }}
+                className="bg-green-500 h-3 rounded-full"
+              />
             </div>
-            <p className="text-gray-300 mt-3">
-              {progressPercentage.toFixed(2)}% Completed
+            <p className="text-sm mt-2 text-center">
+              {progress}% completed ({completedMilestones}/{totalMilestones})
             </p>
-          </motion.div>
+          </Card>
 
-          <MilestoneTracker contractData={contractData} />
+          {/* MILESTONE TIMELINE */}
+          <Card title="Milestone Timeline">
+            {contract.milestones.length === 0 ? (
+              <p className="text-gray-400 text-center">
+                Milestones not finalized yet
+              </p>
+            ) : (
+              <MilestoneTimeline
+                milestones={contract.milestones}
+                contractId={contract._id}
+                userId={user.id}
+              />
+            )}
+          </Card>
 
-          <motion.h2
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-2xl font-semibold text-white mb-6 text-center"
-          >
-            Payment History
-          </motion.h2>
-          {loading ? (
-            <p className="text-center text-gray-400">Loading payments...</p>
-          ) : error ? (
-            <p className="text-center text-red-500">{error}</p>
-          ) : requestedPayments.filter(
-              (payment) => payment.status === "Completed",
-            ).length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {requestedPayments
-                .filter((payment) => payment.status === "Completed")
-                .map((payment, idx) => (
-                  <motion.div
-                    key={payment._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    whileHover={{ y: -4 }}
-                    className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl shadow-md border border-gray-800 hover:border-gray-600 transition"
-                  >
-                    <p className="text-lg font-semibold break-all">
-                      ID: {payment._id}
-                    </p>
-                    <p className="text-gray-300 mt-3">
-                      Bid Amount: ₹{payment.bidAmount}
-                    </p>
-                    <p className="text-gray-300">
-                      Payment Requested: ₹{payment.paymentMade}
-                    </p>
-                    <p className="text-gray-300">Reason: {payment.reason}</p>
-                    <p className="text-yellow-400 font-medium mt-2">
-                      Status: {payment.status}
-                    </p>
-                  </motion.div>
-                ))}
-            </div>
-          ) : (
-            <p className="text-center text-gray-400">
-              No payment history found.
-            </p>
-          )}
+          {/* PAYMENT HISTORY */}
+          <Card title="Payment History">
+            {contract.milestones.filter((m) => m.fundRelease?.released)
+              .length === 0 ? (
+              <p className="text-gray-400 text-center">
+                No payments released yet
+              </p>
+            ) : (
+              contract.milestones.map(
+                (m, i) =>
+                  m.fundRelease?.released && (
+                    <div
+                      key={i}
+                      className="border-b border-gray-700 py-2 text-sm"
+                    >
+                      <p>{m.title}</p>
+                      <p className="text-gray-400">Amount: ₹{m.amount}</p>
+                    </div>
+                  ),
+              )
+            )}
+          </Card>
         </div>
       </div>
     </ProtectedRoute>
   );
-};
+}
+
+// MILESTONES
+
+function MilestoneTimeline({ milestones, contractId, userId }) {
+  return (
+    <div className="space-y-6">
+      {milestones.map((m, i) => (
+        <div
+          key={i}
+          className="bg-[#0f1224] border border-gray-700 rounded-xl p-4"
+        >
+          <p className="font-semibold">{m.title}</p>
+          <p className="text-sm text-gray-400">{m.description}</p>
+          <p className="text-sm mt-1">Amount: ₹{m.amount}</p>
+          <p className="text-sm">Status: {m.status}</p>
+
+          {/* PROOFS */}
+          {m.proofs?.length > 0 && (
+            <div className="mt-3 space-y-2">
+              <p className="text-sm font-semibold">Proofs</p>
+              {m.proofs.map((p, idx) => (
+                <a
+                  key={idx}
+                  href={p.fileUrl}
+                  target="_blank"
+                  className="text-blue-400 text-sm underline"
+                >
+                  View {p.type}
+                </a>
+              ))}
+            </div>
+          )}
+          {m.publicVoting?.closed && (
+            <p className="text-sm text-yellow-400 mt-2">
+              Public voting closed. Awaiting government review.
+            </p>
+          )}
+
+          {m.status === "UnderReview" && !m.publicVoting?.closed && (
+            <PublicVoteSection
+              contractId={contractId}
+              milestoneId={m._id}
+              userId={userId}
+            />
+          )}
+
+          {m.publicVotesLog?.length > 0 && (
+            <div className="mt-3 text-sm text-gray-300">
+              <p className="font-semibold">Public Feedback</p>
+              {m.publicVotesLog.map((v, idx) => (
+                <div key={idx} className="border-b border-gray-700 py-1">
+                  <p>
+                    <strong>{v.vote.toUpperCase()}</strong> –{" "}
+                    {v.comment || "No comment"}
+                  </p>
+                  {v.attachment && (
+                    <a
+                      href={v.attachment}
+                      target="_blank"
+                      className="text-blue-400 underline text-xs"
+                    >
+                      View attachment
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function PublicVoteSection({ contractId, milestoneId, userId }) {
+  const [comment, setComment] = useState("");
+  const [vote, setVote] = useState("approve");
+  const [image, setImage] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const submitVote = async () => {
+    if (!userId) {
+      alert("You must be logged in to vote");
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("contractId", contractId);
+      formData.append("milestoneId", milestoneId);
+      formData.append("userId", userId);
+      formData.append("vote", vote);
+      formData.append("comment", comment);
+
+      if (image) {
+        formData.append("image", image);
+      }
+
+      const res = await fetch("/api/contract-voting/public-voting", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error();
+
+      success("Vote submitted successfully");
+      location.reload();
+    } catch (err) {
+      warning("Failed to submit vote");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mt-6 bg-[#14162d8a] border border-gray-800 rounded-xl p-4 space-y-3">
+      <h4 className="text-sm font-semibold text-gray-200">
+        Public Verification
+      </h4>
+
+      {/* Comment */}
+      <textarea
+        placeholder="Share your observation (optional)"
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        className="w-full bg-[#0f1224] border border-gray-700 p-2 rounded-lg text-sm text-white focus:outline-none"
+      />
+
+      {/* Proof Image */}
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => setImage(e.target.files[0])}
+        className="w-full text-sm text-gray-400 file:bg-white file:text-black file:px-3 file:py-1 file:rounded-lg file:border-0"
+      />
+
+      {/* Vote + Submit */}
+      <div className="flex gap-3">
+        <select
+          value={vote}
+          onChange={(e) => setVote(e.target.value)}
+          className="bg-[#0f1224] border border-gray-700 p-2 rounded-lg text-sm text-white"
+        >
+          <option value="approve">Approve</option>
+          <option value="reject">Reject</option>
+        </select>
+
+        <motion.button
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.95 }}
+          disabled={submitting}
+          onClick={submitVote}
+          className="bg-white text-black px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
+        >
+          {submitting ? "Submitting..." : "Submit Vote"}
+        </motion.button>
+      </div>
+    </div>
+  );
+}
+
+function PublicRating({ contractorId, contractId, userId }) {
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const submitRating = async () => {
+    if (!rating || rating < 1 || rating > 5) {
+      alert("Please select a rating between 1 and 5");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/contractor/rating", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contractorId,
+          contractId,
+          userId,
+          rating,
+          comment,
+        }),
+      });
+
+      if (!res.ok) throw new Error();
+      success("Rating submitted successfully");
+      location.reload();
+    } catch {
+      warning("Failed to submit rating");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 space-y-3">
+      <p className="text-sm font-semibold">Rate Contractor</p>
+
+      <div className="flex gap-2">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            onClick={() => setRating(n)}
+            className={`text-2xl ${
+              n <= rating ? "text-yellow-400" : "text-gray-500"
+            }`}
+          >
+            ★
+          </button>
+        ))}
+      </div>
+
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="Optional feedback (visible publicly)"
+        className="w-full bg-[#14162d] p-2 rounded-lg text-sm border border-gray-700"
+      />
+
+      <button
+        disabled={submitting}
+        onClick={submitRating}
+        className="bg-white text-black px-4 py-2 rounded-lg text-sm font-semibold"
+      >
+        Submit Rating
+      </button>
+    </div>
+  );
+}
+
+function Card({ title, children }) {
+  return (
+    <div className="bg-[#14162d8a] border border-gray-800 rounded-2xl p-6 space-y-4">
+      <h2 className="text-xl font-semibold text-center">{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+function InfoRow({ label, value }) {
+  return (
+    <div className="flex justify-between text-sm border-b border-gray-700 py-2">
+      <span className="text-gray-400">{label}</span>
+      <span className="font-medium">{value}</span>
+    </div>
+  );
+}

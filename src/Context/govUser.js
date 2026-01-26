@@ -13,28 +13,26 @@ export const GovProvider = ({ children }) => {
   const [isSuperOwner, setIsSuperOwner] = useState(false);
   const [user, setUser] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(true);
 
-
-  useEffect(() => {
+  const syncUser = () => {
     try {
       const token = localStorage.getItem("token");
-
-      console.log(token);
       if (!token) {
         setUser(null);
-      } else {
-        const decoded = jwtDecode(token);
-        setUser(decoded);
-        console.log(decoded);
+        return;
       }
-    } catch (error) {
-      console.error("Token decode error:", error);
+      const decoded = jwtDecode(token);
+      setUser(decoded);
+    } catch (err) {
+      console.error("Token decode error:", err);
+      setUser(null);
     }
-    finally{
+  };
 
-      setLoading(false);
-    }
+  useEffect(() => {
+    syncUser();
+    setLoading(false);
   }, []);
 
   return (
@@ -44,18 +42,20 @@ export const GovProvider = ({ children }) => {
         setShowPopup,
         user,
         setUser,
+        syncUser,        // 👈 ADD THIS
         govProfile,
         setGovProfile,
         isOwner,
         setIsOwner,
         isSuperOwner,
         setIsSuperOwner,
-        loading
+        loading,
       }}
     >
       {children}
     </GovContext.Provider>
   );
 };
+
 
 export const useGovUser = () => useContext(GovContext);

@@ -1,100 +1,72 @@
-import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/dbConnect";
-import Payment from "@/Models/Payment";
-import cloudinary from "cloudinary";
 import Contract from "@/Models/Contract";
-import Tender from "@/Models/Tender";
+import cloudinary from "cloudinary";
+import { NextResponse } from "next/server";
 
 cloudinary.v2.config({
-  cloud_name: "dt1cqoxe8",
-  api_key: "736378735539485",
-  api_secret: "iJfGZ2TqF348thygERO5RzVgjpM",
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export async function PUT(req) {
-  try {
-    await dbConnect();
-    const formData = await req.formData();
+export async function POST(req) {
+  await dbConnect();
+  const formData = await req.formData();
 
-    const paymentId = formData.get("paymentId");
-    const vote = formData.get("vote");
-    const review = formData.get("review");
-    const image = formData.get("image");
-    const contractId = formData.get("contractId");
+  const contractId = formData.get("contractId");
+  const milestoneId = formData.get("milestoneId");
+  const userId = formData.get("userId");
+  const vote = formData.get("vote"); // approve / reject
+  const comment = formData.get("comment");
+  const image = formData.get("image");
 
-    const payment = await Payment.findById(paymentId);
-    if (!payment) {
-      return NextResponse.json(
-        { message: "Payment not found" },
-        { status: 404 }
-      );
-    }
+  const contract = await Contract.findById(contractId);
+  if (!contract) {
+    return NextResponse.json({ error: "Contract not found" }, { status: 404 });
+  }
 
-    const contract = await Contract.findById(contractId);
-    if (!contract) {
-      return NextResponse.json(
-        { success: false, message: "Contract not found" },
-        { status: 404 }
-      );
-    }
+  const milestone = contract.milestones.id(milestoneId);
+  if (!milestone) {
+    return NextResponse.json({ error: "Milestone not found" }, { status: 404 });
+  }
 
-    const tender = await Tender.findById(contract.tenderId);
-    if (!tender) {
-      return NextResponse.json(
-        { success: false, message: "Tender not found" },
-        { status: 404 }
-      );
-    }
-
-    // Sanitize folder name
-    let contractTitle = tender.title || "untitled";
-    contractTitle = contractTitle
-      .trim()
-      .replace(/\s+/g, "_")
-      .replace(/[^a-zA-Z0-9_]/g, "");
-
-    const voteObject = {
-      description: review,
-    };
-
-    // Upload image to Cloudinary if exists
-    if (image && typeof image.arrayBuffer === "function") {
-      const buffer = await image.arrayBuffer();
-      const base64Image = Buffer.from(buffer).toString("base64");
-      const dataUri = `data:${image.type};base64,${base64Image}`;
-
-      const uploadedResponse = await cloudinary.v2.uploader.upload(dataUri, {
-        folder: `civicLedger/${contractTitle}/publicImgs`,
-        use_filename: true,
-        unique_filename: false,
-      });
-
-      voteObject.image = uploadedResponse.secure_url;
-    }
-
-    // Push vote into appropriate array
-    if (vote === "approve") {
-      payment.approvalVotes.push(voteObject);
-    } else if (vote === "reject") {
-      payment.rejectionVotes.push(voteObject);
-    } else {
-      return NextResponse.json(
-        { message: "Invalid vote type" },
-        { status: 400 }
-      );
-    }
-
-    const updatedPayment = await payment.save();
-
+  if (milestone.status !== "UnderReview") {
     return NextResponse.json(
-      { message: "Vote submitted", payment: updatedPayment },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("Error in PUT voting route:", error);
-    return NextResponse.json(
-      { message: "Internal Server Error" },
-      { status: 500 }
+      { error: "Voting not allowed at this stage" },
+      { status: 400 }
     );
   }
+
+  const alreadyVoted = milestone.publicVotesLog.find(
+    (v) => v.userId?.toString() === userId
+  );
+  if (alreadyVoted) {
+    return NextResponse.json(
+      { error: "You already voted" },
+      { status: 400 }
+    );
+  }
+
+  let attachmentUrl = null;
+  if (image && typeof image.arrayBuffer === "function") {
+    const buffer = Buffer.from(await image.arrayBuffer());
+    const upload = await cloudinary.v2.uploader.upload(
+      `data:${image.type};base64,${buffer.toString("base64")}`,
+      { folder: "milestone-public-votes" }
+    );
+    attachmentUrl = upload.secure_url;
+  }
+
+  milestone.publicVotesLog.push({
+    userId,
+    vote,
+    comment,
+    attachment: attachmentUrl,
+  });
+
+  milestone.publicVotes[vote] += 1;
+
+  await contract.save();
+
+  return NextResponse.json({ success: true });
 }

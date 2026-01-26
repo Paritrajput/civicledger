@@ -13,6 +13,7 @@ export default function Page() {
 }
 export function IssueDetail() {
   const [issueData, setIssueData] = useState(null);
+  const [activeImage, setActiveImage] = useState(0);
   const searchParams = useSearchParams();
   const router = useRouter();
   const issueParam = searchParams.get("issue");
@@ -54,14 +55,30 @@ export function IssueDetail() {
           >
             <h2 className="text-2xl font-bold mb-6">Issue Details</h2>
 
-            {parsedIssue.image && (
-              <motion.img
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                src={parsedIssue.image}
-                alt="Issue"
-                className="w-full h-48 object-cover mt-3 rounded-xl shadow-md"
-              />
+          {issueData.images?.length > 0 && (
+              <div className="mt-5">
+                <img
+                  src={issueData.images[activeImage]}
+                  className="rounded-xl border w-full"
+                />
+                {issueData.images.length > 1 && (
+                  <div className="flex gap-2 mt-3">
+                    {issueData.images.map((img, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setActiveImage(i)}
+                        className={`border rounded-lg ${
+                          i === activeImage
+                            ? "border-white"
+                            : "border-gray-600 opacity-70"
+                        }`}
+                      >
+                        <img src={img} className="h-16 w-20 object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
             <div className="space-y-3 mt-4">
               <p className="text-gray-300">
@@ -74,15 +91,15 @@ export function IssueDetail() {
               </p>
               <p className="text-gray-300">
                 <strong className="text-white">Location:</strong>{" "}
-                {parsedIssue.placename}
+                {parsedIssue.location.placeName}
               </p>
               <p className="text-gray-300">
                 <strong className="text-white">Coordinate:</strong>{" "}
-                {`${parsedIssue.location.lat}/${parsedIssue.location.lng}`}
+                {`${parsedIssue.location.coordinates[0]}/${parsedIssue.location.coordinates[1]}`}
               </p>
               <p className="text-gray-300">
                 <strong className="text-white">Public Votes:</strong>{" "}
-                {`Approvals: ${parsedIssue.approval}, Denials: ${parsedIssue.denial}`}
+                {`Approvals: ${parsedIssue.publicValidation.approvals}, Denials: ${parsedIssue.publicValidation.rejections}`}
               </p>
               <p className="text-gray-300">
                 <strong className="text-white">Issue Status:</strong>{" "}
@@ -90,7 +107,9 @@ export function IssueDetail() {
               </p>
               <p className="text-gray-300">
                 <strong className="text-white">Date:</strong>{" "}
-                {parsedIssue.date_of_complaint}
+                {parsedIssue.createdAt
+                  ? new Date(parsedIssue.createdAt).toLocaleDateString()
+                  : "N/A"}
               </p>
             </div>
 

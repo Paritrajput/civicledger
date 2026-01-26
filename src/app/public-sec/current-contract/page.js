@@ -36,6 +36,7 @@ export default function Page2() {
       try {
         const response = await axios.get("/api/contracts/gov-contracts");
         setContracts(response.data);
+        console.log("Fetched Contracts:", response.data);
         setLoading(false);
       } catch (error) {
         console.error("Could not fetch contracts", error);
@@ -69,7 +70,7 @@ export default function Page2() {
           contract.location?.lat || 0,
           contract.location?.lng || 0,
         );
-        return distance <= 5000; // Within 5km radius
+        return distance <= 50000; // Within 5km radius
       });
 
       setFilteredContracts(nearbyContracts);
@@ -152,6 +153,8 @@ export default function Page2() {
                   <div className="h-10 bg-gray-700 rounded-xl w-32 mt-4" />
                 </div>
               ))
+
+          
             : getDisplayedContracts().map((item, index) => (
                 <motion.div
                   key={index}
@@ -166,7 +169,7 @@ export default function Page2() {
                   </h2>
 
                   <p className="text-gray-300 mt-2 text-sm">
-                    <strong>Bid Amount:</strong> {item.bidAmount}
+                    <strong>Bid Amount:</strong> {item.contractValue}
                   </p>
 
                   <motion.button
@@ -174,8 +177,8 @@ export default function Page2() {
                     whileTap={{ scale: 0.95 }}
                     onClick={() =>
                       router.push(
-                        `/public-sec/contract-voting?contract=${encodeURIComponent(
-                          JSON.stringify(item),
+                        `/public-sec/contract-voting?contractId=${encodeURIComponent(
+                         item._id,
                         )}`,
                       )
                     }

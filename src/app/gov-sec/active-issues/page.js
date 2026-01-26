@@ -80,10 +80,25 @@ export default function IssuesList() {
                   whileHover={{ y: -4 }}
                   className="bg-[#14162d8a] backdrop-blur-xl md:p-5 p-3 rounded-2xl shadow-lg border border-gray-800 hover:border-gray-600 transition"
                 >
-                  <h2 className="text-xl font-semibold">{item.issue_type}</h2>
-                  <p className="text-gray-300 mt-1 md:mt-2">
-                    {item.description}
-                  </p>
+                 <h2 className="text-lg md:text-xl font-semibold">
+                  {item.issue_type}
+                </h2>
+
+                <p className="text-gray-300 mt-2 max-md:hidden">
+                  {item.description}
+                </p>
+
+                <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-400 mt-3">
+                  <span>
+                    <strong>Location:</strong> {item.location.placeName}
+                  </span>
+                  <span>
+                    <strong>Date:</strong> {item.createdAt
+                      ? new Date(item.createdAt).toLocaleDateString()
+                      : "N/A"}
+                  </span>
+               
+                </div>
                   <motion.button
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.95 }}
@@ -94,7 +109,7 @@ export default function IssuesList() {
                     }
                     className="mt-2 md:mt-4 bg-white text-black font-semibold px-6 py-2 rounded-xl hover:shadow-lg transition"
                   >
-                    🔍 View Details
+                     View Details
                   </motion.button>
                 </motion.div>
               ))

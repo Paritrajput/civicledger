@@ -1,147 +1,167 @@
-import { ethers } from "ethers";
-import Bidding from "@/contracts/Bidding.json"; // ABI of the contract
-import Bid from "@/Models/Bid"; // Mongoose model for storing bid data
 import { dbConnect } from "@/lib/dbConnect";
-import Contractor from "@/Models/Contractor";
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
+import cloudinary from "cloudinary";
+
+import Bid from "@/Models/Bid";
+import Tender from "@/Models/Tender";
+import Contractor from "@/Models/Contractor";
+import { getUserFromRequest } from "@/lib/auth";
+
+
+cloudinary.v2.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 
 export async function POST(req) {
-  await dbConnect();
-
-  if (req.method !== "POST") {
-    return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 });
-  }
-
   try {
-    const body = await req.json(); // Await the request body
-    console.log("Received body:", body);
+    await dbConnect();
 
-    const {
-      tenderId,
-      blockchainTenderId,
-      contractorId,
-      bidAmount,
-      proposalDocument,
-    } = body;
+    const user = await getUserFromRequest(req);
 
-    // Fetch contractor data
-
-    const contractorIdM = new mongoose.Types.ObjectId(contractorId);
-    console.log(contractorIdM);
-    const contractorData = await Contractor.findById(contractorIdM);
-    if (!contractorData) {
+    if (!user || user.role !== "contractor") {
       return NextResponse.json(
-        { error: "Contractor not found" },
+        { error: "Only contractors can place bids" },
+        { status: 403 }
+      );
+    }
+
+    const formData = await req.formData();
+
+    const tenderId = formData.get("tenderId");
+    const bidAmount = formData.get("bidAmount");
+    const timeline = formData.get("timeline");
+    const remarks = formData.get("remarks");
+    const proposalFile = formData.get("proposal");
+
+    if (!tenderId || !bidAmount || !proposalFile) {
+      return NextResponse.json(
+        { error: "Missing required bid fields" },
+        { status: 400 }
+      );
+    }
+
+    const tender = await Tender.findById(tenderId);
+    if (!tender) {
+      return NextResponse.json(
+        { error: "Tender not found" },
         { status: 404 }
       );
     }
 
-    let experienceYears = Number(contractorData.experienceYears);
-    let contractorRating = Number(contractorData.contractorRating);
-    if (!experienceYears || !contractorRating) {
-      experienceYears = 0;
-      contractorRating = 0;
+    const now = new Date();
+    if (
+      tender.status !== "OPEN" ||
+      now < tender.bidOpeningDate ||
+      now > tender.bidClosingDate
+    ) {
+      return NextResponse.json(
+        { error: "Bidding is closed for this tender" },
+        { status: 400 }
+      );
     }
 
-    console.log("got data", contractorData);
-    console.log("experiance:", experienceYears);
+    const contractor = await Contractor.findById(user.id);
+    if (!contractor || contractor.isBlocked) {
+      return NextResponse.json(
+        { error: "Contractor not eligible" },
+        { status: 403 }
+      );
+    }
 
-    const provider = new ethers.JsonRpcProvider(
-      process.env.NEXT_PUBLIC_RPC_URL
-    );
-    const wallet = new ethers.Wallet(
-      process.env.NEXT_PUBLIC_PRIVATE_KEY,
-      provider
-    );
-    const contract = new ethers.Contract(
-      process.env.BID_CONTRACT_ADDRESS,
-      Bidding.abi,
-      wallet
-    );
-    console.log(experienceYears);
-
-    // const tx = await contract.placeBid(
-    //   Number(blockchainTenderId),
-    //   contractorId,
-    //   Number(bidAmount),
-    //   proposalDocument,
-    //   Math.floor(Number(experienceYears)),
-    //   Math.floor(Number(contractorRating))
-    // );
-    // const receipt = await tx.wait();
-
-    // console.log("Transaction Receipt:", receipt);
-
-    // let blockchainBidId;
-    // for (const log of receipt.logs) {
-    //   try {
-    //     const parsedLog = contract.interface.parseLog(log);
-    //     if (parsedLog.name === "BidPlaced") {
-    //       blockchainBidId = parsedLog.args[0].toString(); // Get bidId instead of tenderId
-    //       break;
-    //     }
-    //   } catch (error) {
-    //     continue;
-    //   }
-    // }
-
-    // if (!blockchainBidId) {
-    //   throw new Error("Tender ID not found in blockchain event logs");
-    // }
-
-    const newBid = new Bid({
-      tenderId,
-      contractorId,
-      bidAmount,
-      status: "Pending",
-      proposalDocument,
-      experienceYears,
-      contractorRating,
-      // blockchainBidId,
-      // transactionHash: tx.hash,
+    const alreadyBid = await Bid.findOne({
+      tenderId: tender._id,
+      contractorId: contractor._id,
     });
 
-    await newBid.save();
+    if (alreadyBid) {
+      return NextResponse.json(
+        { error: "You have already placed a bid" },
+        { status: 400 }
+      );
+    }
+
+    const buffer = Buffer.from(await proposalFile.arrayBuffer());
+
+    const upload = await cloudinary.v2.uploader.upload(
+      `data:${proposalFile.type};base64,${buffer.toString("base64")}`,
+      {
+        folder: "contracker/bids",
+        resource_type: "raw",
+      }
+    );
+
+    const experienceYears = Number(contractor.experienceYears) || 0;
+    const contractorRating =
+      typeof contractor.contractorRating === "object"
+        ? contractor.contractorRating.average
+        : Number(contractor.contractorRating) || 0;
+
+    const bid = await Bid.create({
+      tenderId: tender._id,
+      contractorId: contractor._id,
+      bidAmount: Number(bidAmount),
+      timeline,
+      remarks,
+      proposalDocument: upload.secure_url,
+
+      experienceYears,
+      contractorRating,
+
+      score: null,
+      evaluation: {
+        systemRecommended: false,
+        evaluatedAt: null,
+      },
+
+      status: "Pending",
+      isLocked: true,
+    });
 
     return NextResponse.json(
-      { success: true, message: "Bid placed successfully", },
-      { status: 200 }
+      {
+        success: true,
+        message: "Bid placed successfully",
+        bidId: bid._id,
+      },
+      { status: 201 }
     );
   } catch (error) {
-    console.error("Error placing bid:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Bid placement error:", error);
+    return NextResponse.json(
+      { error: "Failed to place bid" },
+      { status: 500 }
+    );
   }
 }
+
 
 export async function GET(req) {
   try {
     await dbConnect();
 
     const { searchParams } = new URL(req.url);
-    const tenderId = searchParams.get("tenderId")?.replace(/^"|"$/g, "").trim();
+    const tenderId = searchParams.get("tenderId");
 
     if (!tenderId) {
-      console.log("❌ No tenderId received");
       return NextResponse.json(
-        { error: "Tender ID is required!" },
+        { error: "Tender ID is required" },
         { status: 400 }
       );
     }
 
-    console.log("🔍 Searching for bids with tenderId:", tenderId);
-
-    const bids = await Bid.find({ tenderId: tenderId });
-
-    if (bids.length === 0) {
-      console.log("⚠️ No bids found for tenderId:", tenderId);
-    } else {
-      console.log("✅ Found bids:", bids);
-    }
+    const bids = await Bid.find({ tenderId })
+      .populate("contractorId", "name experienceYears contractorRating")
+      .sort({ bidAmount: 1 });
 
     return NextResponse.json(bids, { status: 200 });
   } catch (error) {
-    console.error("🚨 Error fetching bids:", error);
-    return NextResponse.json({ error: "Error fetching bids" }, { status: 500 });
+    console.error("Fetch bids error:", error);
+    return NextResponse.json(
+      { error: "Error fetching bids" },
+      { status: 500 }
+    );
   }
 }

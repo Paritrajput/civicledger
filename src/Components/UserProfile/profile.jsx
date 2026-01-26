@@ -3,67 +3,115 @@
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useGovUser } from "@/Context/govUser";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Profile() {
   const router = useRouter();
-  const { showPopup, setShowPopup, user } = useGovUser();
+  const { showPopup, setShowPopup, user, setUser } = useGovUser();
   const { data: session } = useSession();
 
   const handleLogout = async () => {
-    if (session) await signOut();
-    localStorage.removeItem("token");
-    router.push("/login");
-  };
-
-  const handleBackdropClick = () => {
-    setShowPopup(false);
+    try {
+      if (session) await signOut({ redirect: false });
+      localStorage.removeItem("token");
+      setUser(null);
+      setShowPopup(false);
+      router.push("/login");
+    } catch (err) {
+      console.error("Logout failed", err);
+    }
   };
 
   return (
-    showPopup && (
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-        onClick={handleBackdropClick}
-      >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="relative w-80 max-w-sm bg-gray-900 text-white rounded-2xl shadow-xl p-6"
+    <AnimatePresence>
+      {showPopup && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setShowPopup(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
         >
-          {/* Close button */}
-          <button
-            onClick={() => setShowPopup(false)}
-            className="absolute top-3 right-3 text-gray-400 hover:text-white text-xl"
+          <motion.div
+            initial={{ scale: 0.9, y: 20, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.9, y: 20, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-[90%] max-w-sm rounded-2xl 
+                       bg-[#14162d8a] backdrop-blur-xl 
+                       border border-gray-800 shadow-2xl p-6"
           >
-            &times;
-          </button>
+      
+            <button
+              onClick={() => setShowPopup(false)}
+              className="absolute top-3 right-3 text-gray-400 hover:text-white transition"
+            >
+              ✕
+            </button>
 
-          {user ? (
-            <>
-              <div className="mb-4 ">
-                <p className="text-2xl font-bold text-teal-400 capitalize justify-self-center">
-                  {user.role}
-                </p>
-                <p className="text-lg font-semibold mt-2 text-white pl-2">
-                  Username: {user.name}
-                </p>
-                <p className="text-gray-400 text-sm pl-2">Email: {user.email}</p>
-              </div>
+            {user ? (
+              <>
+          
+                <div className="text-center mb-6">
+                  <div className="mx-auto w-16 h-16 rounded-full 
+                                  bg-gradient-to-br from-teal-400 to-purple-500 
+                                  flex items-center justify-center text-2xl font-bold text-black">
+                    {user.name?.charAt(0)?.toUpperCase()}
+                  </div>
 
-              <button
-                onClick={() => {
-                  handleLogout();
-                  setShowPopup(false);
-                }}
-                className="w-full mt-4 bg-red-500 hover:bg-red-600 transition-colors duration-200 text-white font-semibold py-2 rounded-lg"
-              >
-                Logout
-              </button>
-            </>
-          ) : (
-            <p className="text-center text-gray-400">Not Logged In</p>
-          )}
-        </div>
-      </div>
-    )
+                  <p className="mt-3 text-lg font-semibold text-white capitalize">
+                    {user.name}
+                  </p>
+                  <p className="text-sm text-gray-400">{user.email}</p>
+
+                  <span className="inline-block mt-2 px-3 py-1 text-xs font-semibold 
+                                   rounded-full bg-teal-500/20 text-teal-300">
+                    {user.role}
+                  </span>
+                </div>
+
+      
+                <div className="space-y-2 text-sm text-gray-300">
+                  {user.owner && (
+                    <InfoBadge label="Owner Access" />
+                  )}
+                  {user.superOwner && (
+                    <InfoBadge label="Super Owner" highlight />
+                  )}
+                </div>
+
+            
+                <button
+                  onClick={handleLogout}
+                  className="mt-6 w-full bg-red-500 hover:bg-red-600 
+                             transition text-white font-semibold py-2 rounded-xl"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <p className="text-center text-gray-400">Not Logged In</p>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+
+
+function InfoBadge({ label, highlight }) {
+  return (
+    <div
+      className={`text-center py-1 rounded-lg text-xs font-semibold ${
+        highlight
+          ? "bg-purple-500/20 text-purple-300"
+          : "bg-gray-700/40 text-gray-300"
+      }`}
+    >
+      {label}
+    </div>
   );
 }

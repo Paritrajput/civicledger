@@ -6,11 +6,13 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import { useSession, signIn } from "next-auth/react";
 import { jwtDecode } from "jwt-decode";
+import { useGovUser } from "@/Context/govUser";
 
 export default function PublicLogin() {
   const router = useRouter();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const { user, syncUser } = useGovUser();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -24,6 +26,7 @@ export default function PublicLogin() {
       const res = await axios.post("/api/public-sec/login", formData);
       if (res.data.success) {
         localStorage.setItem("token", res.data.token);
+        syncUser();
         router.push("/");
       }
     } catch (err) {

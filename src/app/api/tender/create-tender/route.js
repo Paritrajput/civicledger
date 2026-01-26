@@ -1,49 +1,121 @@
 import { dbConnect } from "@/lib/dbConnect";
-import Tender from "@/Models/Tender";
+
+import Issue from "@/Models/Issue";
 import { ethers } from "ethers";
 import { NextResponse } from "next/server";
-import TenderContract from "@/contracts/TenderCreation";
+import TenderContract from "@/contracts/TenderCreation.json";
+import { getUserFromRequest } from "@/lib/auth";
+import cloudinary from "cloudinary";
+import Tender from "@/Models/Tender";
+
+
+
+// Cloudinary config 
+cloudinary.v2.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY ,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function POST(req) {
-  if (req.method !== "POST")
-    return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
-
   try {
-    const body = await req.json();
-    console.log("Received Body:", body);
+    await dbConnect();
 
-    const {
-      title,
-      description,
-      category,
-      minBidAmount,
-      maxBidAmount,
-      bidOpeningDate,
-      bidClosingDate,
-      location,
-      issueDetails,
-      creator,
-    } = body;
+
+
+
+    const user = await getUserFromRequest(req);
+    if (!user || user.role !== "gov") {
+      return NextResponse.json(
+        { error: "Only Government can create tenders" },
+        { status: 403 }
+      );
+    }
+
+    const formData = await req.formData();
+
+    
+    const title = formData.get("title");
+    const description = formData.get("description");
+    const category = formData.get("category") || "";
+    const minBidAmount = formData.get("minBidAmount");
+    const maxBidAmount = formData.get("maxBidAmount");
+    const bidOpeningDate = formData.get("bidOpeningDate");
+    const bidClosingDate = formData.get("bidClosingDate");
+    const location = formData.get("location");
+    const issueId = formData.get("issueId");
 
     if (
       !title ||
       !description ||
-      !category ||
       !minBidAmount ||
       !maxBidAmount ||
-      !location ||
       !bidOpeningDate ||
-      !bidClosingDate
+      !bidClosingDate ||
+      !location
     ) {
       return NextResponse.json(
-        { error: "All fields are required!" },
+        { error: "Missing required fields" },
         { status: 400 }
       );
     }
-    // console.log(blockchainTenderId);
-    await dbConnect();
 
-    const newTender = new Tender({
+    //uplod documents
+    const attachments = [];
+    const files = formData.getAll("documents");
+
+    for (const file of files) {
+      const buffer = Buffer.from(await file.arrayBuffer());
+
+      const upload = await cloudinary.v2.uploader.upload(
+        `data:${file.type};base64,${buffer.toString("base64")}`,
+        {
+          folder: "contracker/tenders",
+          resource_type: "raw",
+        }
+      );
+
+      attachments.push({
+        name: file.name,
+        url: upload.secure_url,
+        type: file.type,
+      });
+    }
+
+    // issue-based
+    let source = "DIRECT";
+    let issueSnapshot = null;
+
+    if (issueId) {
+      const issue = await Issue.findById(issueId);
+
+      if (!issue || issue.status == "GOV_REJECTED") {
+        return NextResponse.json(
+          { error: "Issue not approved for tender creation" },
+          { status: 400 }
+        );
+      }
+
+      const existingTender = await Tender.findOne({
+        "issue.issueId": issue._id,
+      });
+
+      if (existingTender) {
+        return NextResponse.json(
+          { error: "Tender already exists for this issue" },
+          { status: 400 }
+        );
+      }
+
+      source = "ISSUE";
+      issueSnapshot = {
+        issueId: issue._id,
+        description: issue.description,
+        placeName: issue.location.placeName,
+      };
+    }
+
+    const tender = await Tender.create({
       title,
       description,
       category,
@@ -52,13 +124,14 @@ export async function POST(req) {
       bidOpeningDate,
       bidClosingDate,
       location,
-      active: true,
-      issueDetails,
-      creator,
+      attachments,
+      source,
+      issue: issueSnapshot,
+      createdBy: user.id,
+      status: "DRAFT",
     });
 
-    const savedTender = await newTender.save();
-
+    // blockchain
     const provider = new ethers.JsonRpcProvider(
       process.env.NEXT_PUBLIC_RPC_URL
     );
@@ -66,6 +139,7 @@ export async function POST(req) {
       process.env.NEXT_PUBLIC_PRIVATE_KEY,
       provider
     );
+
     const contract = new ethers.Contract(
       process.env.TENDER_CONTRACT_ADDRESS,
       TenderContract.abi,
@@ -73,46 +147,52 @@ export async function POST(req) {
     );
 
     const tx = await contract.createTender(
-      body.title,
-      body.description,
-      body.category,
-      ethers.parseEther(body.minBidAmount),
-      ethers.parseEther(body.maxBidAmount),
-      Math.floor(new Date(body.bidOpeningDate).getTime() / 1000),
-      Math.floor(new Date(body.bidClosingDate).getTime() / 1000),
-      body.issueDetails.placename,
-      String(body.creator.id)
+      title,
+      description,
+      category,
+      ethers.parseEther(String(minBidAmount)),
+      ethers.parseEther(String(maxBidAmount)),
+      Math.floor(new Date(bidOpeningDate).getTime() / 1000),
+      Math.floor(new Date(bidClosingDate).getTime() / 1000),
+      issueSnapshot?.placeName || "DIRECT",
+      String(user.id)
     );
+
     const receipt = await tx.wait();
 
-    savedTender.transactionHash = receipt.transactionHash;
-
-    let blockchainTenderId;
+    let blockchainTenderId = null;
     for (const log of receipt.logs) {
       try {
-        const parsedLog = contract.interface.parseLog(log);
-        if (parsedLog.name === "TenderCreated") {
-          blockchainTenderId = parsedLog.args[0].toString();
+        const parsed = contract.interface.parseLog(log);
+        if (parsed.name === "TenderCreated") {
+          blockchainTenderId = parsed.args[0].toString();
           break;
         }
-      } catch (error) {
-        continue;
-      }
+      } catch {}
     }
 
     if (!blockchainTenderId) {
-      throw new Error("Tender ID not found in blockchain event logs");
+      throw new Error("Blockchain tender ID not found");
     }
 
-    savedTender.blockchainTenderId = blockchainTenderId;
-    await savedTender.save();
+
+    tender.blockchain = {
+      tenderId: blockchainTenderId,
+      transactionHash: receipt.transactionHash,
+      network: "POLYGON",
+    };
+    tender.status = "OPEN";
+    await tender.save();
 
     return NextResponse.json(
-      { message: "Tender created successfully!", tenderId: savedTender._id },
-      { status: 200 }
+      { message: "Tender created successfully", tenderId: tender._id },
+      { status: 201 }
     );
   } catch (error) {
-    console.error("Error creating tender:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Tender creation failed:", error);
+    return NextResponse.json(
+      { error: "Tender creation failed" },
+      { status: 500 }
+    );
   }
 }

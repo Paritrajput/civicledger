@@ -16,11 +16,7 @@ export default function Page() {
 }
 
 export const MakeTender = () => {
-  // const searchParams = useSearchParams();
-  // const issueParam = searchParams.get("issue");
-  // const parsedIssue = issueParam
-  //   ? JSON.parse(decodeURIComponent(issueParam))
-  //   : null;
+
 
   const [creator, setCreator] = useState(null);
   const { user } = useGovUser();
@@ -35,6 +31,8 @@ export const MakeTender = () => {
     bidClosingDate: "",
     location: "",
   });
+  const [documents, setDocuments] = useState([]);
+
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -53,74 +51,90 @@ export const MakeTender = () => {
     setError(null);
     setSuccess(null);
 
-    try {
-      if (typeof window.ethereum === "undefined") {
-        throw new Error("Metamask is not installed.");
-      }
+    // try {
+    //   if (typeof window.ethereum === "undefined") {
+    //     throw new Error("Metamask is not installed.");
+    //   }
 
-      const TenderABI = Tender.abi;
-      await window.ethereum.request({ method: "eth_requestAccounts" });
+    //   const TenderABI = Tender.abi;
+    //   await window.ethereum.request({ method: "eth_requestAccounts" });
 
-      const provider = new BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const contract = new Contract(contractAddress, TenderABI, signer);
+    //   const provider = new BrowserProvider(window.ethereum);
+    //   const signer = await provider.getSigner();
+    //   const contract = new Contract(contractAddress, TenderABI, signer);
 
-      const deadline = Math.floor(
-        new Date(formData.bidClosingDate).getTime() / 1000,
-      );
-      const starting = Math.floor(
-        new Date(formData.bidOpeningDate).getTime() / 1000,
-      );
+    //   const deadline = Math.floor(
+    //     new Date(formData.bidClosingDate).getTime() / 1000,
+    //   );
+    //   const starting = Math.floor(
+    //     new Date(formData.bidOpeningDate).getTime() / 1000,
+    //   );
 
-      const tx = await contract.createTender(
-        formData.title,
-        formData.description,
-        formData.category,
-        formData.minBidAmount,
-        formData.maxBidAmount,
-        starting,
-        deadline,
-        formData.location,
-        creator?.id,
-      );
+    //   const tx = await contract.createTender(
+    //     formData.title,
+    //     formData.description,
+    //     formData.category,
+    //     formData.minBidAmount,
+    //     formData.maxBidAmount,
+    //     starting,
+    //     deadline,
+    //     formData.location,
+    //     creator?.id,
+    //   );
 
-      await tx.wait();
-      console.log("✅ Tender successfully created on Blockchain");
+    //   await tx.wait();
+    //   console.log(" Tender successfully created on Blockchain");
 
       // Store in MongoDB
-      const mongoResponse = await fetch("/api/tender/create-tender", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          creator,
-        }),
-      });
-
-      const mongoData = await mongoResponse.json();
-      if (!mongoResponse.ok) {
-        throw new Error(mongoData.error || "Failed to store in MongoDB");
+          const token = localStorage.getItem("token");
+         
+      if (!token) {
+        throw new Error("Authentication required to create tender");
       }
+   try {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Authentication required");
 
-      setSuccess("Tender successfully created on MongoDB and Blockchain!");
-      setFormData({
-        title: "",
-        description: "",
-        category: "",
-        minBidAmount: "",
-        maxBidAmount: "",
-        bidOpeningDate: "",
-        bidClosingDate: "",
-        location: "",
-      });
+    const fd = new FormData();
 
-      alert("tender created successfully");
-    } catch (err) {
-      console.error("❌ Error submitting tender:", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    Object.entries(formData).forEach(([key, value]) => {
+      fd.append(key, value);
+    });
+
+
+
+    documents.forEach((doc) => {
+      fd.append("documents", doc);
+    });
+
+    const res = await fetch("/api/tender/create-tender", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: fd,
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    alert("Tender created successfully");
+    setFormData({
+      title: "",
+      description: "",
+      category: "",
+      minBidAmount: "",
+      maxBidAmount: "",
+      bidOpeningDate: "",
+      bidClosingDate: "",
+      location: "",
+    });
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+
   };
 
   const handleChange = (e) => {
@@ -131,81 +145,7 @@ export const MakeTender = () => {
     }));
   };
 
-  // const [creator, setCreator] = useState(null);
-
-  // const [formData, setFormData] = useState({
-  //   title: "",
-  //   description: "",
-  //   category: "",
-  //   minBidAmount: "",
-  //   maxBidAmount: "",
-  //   bidOpeningDate: "",
-  //   bidClosingDate: "",
-  //   location: "",
-  // });
-
-  // const [loading, setLoading] = useState(false);
-  // const [error, setError] = useState(null);
-  // const [success, setSuccess] = useState(null);
-
-  // useEffect(() => {
-  //   const token = localStorage.getItem("token");
-  //   if (token) {
-  //     axios
-  //       .get("/api/gov-sec/profile", {
-  //         headers: { Authorization: `Bearer ${token}` },
-  //       })
-  //       .then((res) => setCreator(res.data))
-  //       .catch(() => localStorage.removeItem("gov-token"));
-  //   }
-  // }, []);
-  // console.log(creator);
-
-  // const submitTender = async () => {
-  //   setLoading(true);
-  //   setError(null);
-  //   setSuccess(null);
-
-  //   try {
-  //     const mongoResponse = await fetch("/api/tender/create-tender", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({
-  //         ...formData,
-  //         creator,
-  //       }),
-  //     });
-
-  //     const mongoData = await mongoResponse.json();
-  //     if (!mongoResponse.ok)
-  //       throw new Error(mongoData.error || "Failed to store in MongoDB");
-
-  //     setSuccess("Tender successfully created on MongoDB and Blockchain!");
-  //     setFormData({
-  //       title: "",
-  //       description: "",
-  //       category: "",
-  //       minBidAmount: "",
-  //       maxBidAmount: "",
-  //       bidOpeningDate: "",
-  //       bidClosingDate: "",
-  //     });
-  //   } catch (err) {
-  //     console.error("Error submitting tender:", err);
-  //     setError(err.message);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-  // const handleChange = (e) => {
-  //   const { name, value } = e.target;
-  //   setFormData((prevData) => ({
-  //     ...prevData,
-  //     [name]: value,
-  //   }));
-  // };
-
+  
   return (
     <div className="relative min-h-screen text-white">
       <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
@@ -298,6 +238,28 @@ export const MakeTender = () => {
                 )}
               </motion.div>
             ))}
+            <div className="mt-2">
+  <label className="block font-semibold text-gray-300 mb-2">
+    Attach Documents (PDF / DOC)
+  </label>
+
+  <input
+    type="file"
+    multiple
+    accept=".pdf,.doc,.docx"
+    onChange={(e) => setDocuments(Array.from(e.target.files))}
+    className="w-full border border-gray-700 bg-[#0f1224] p-3 rounded-xl text-white file:bg-white file:text-black file:rounded-lg file:px-3 file:py-1 file:border-0"
+  />
+
+  {documents.length > 0 && (
+    <ul className="text-sm text-gray-400 mt-2 list-disc ml-5">
+      {documents.map((doc, i) => (
+        <li key={i}>{doc.name}</li>
+      ))}
+    </ul>
+  )}
+</div>
+
 
             <motion.button
               whileHover={{ scale: 1.02 }}

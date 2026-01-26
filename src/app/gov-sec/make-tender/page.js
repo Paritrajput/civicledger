@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { BrowserProvider, Contract } from "ethers";
-import Tender from "@/contracts/TenderCreation";
 import { useGovUser } from "@/Context/govUser";
 import { motion } from "framer-motion";
 
@@ -22,7 +20,6 @@ export const MakeTender = () => {
     ? JSON.parse(decodeURIComponent(issueParam))
     : null;
 
-  const [creator, setCreator] = useState(null);
   const { user } = useGovUser();
 
   const [formData, setFormData] = useState({
@@ -36,101 +33,55 @@ export const MakeTender = () => {
     location: "",
   });
 
+  const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-  // const [blockchainTenderId, setBlockchainTenderId] = useState("");
+  const [activeImage, setActiveImage] = useState(0);
 
-  useEffect(() => {
-    setCreator(user);
-  }, [user]);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
-  console.log(creator);
-
-  const contractAddress = "0x65287e595750b26423761930F927e084B4175245";
+  const handleDocumentChange = (e) => {
+    setDocuments(Array.from(e.target.files));
+  };
 
   const submitTender = async () => {
     setLoading(true);
     setError(null);
-    setSuccess(null);
 
     try {
-      if (typeof window.ethereum === "undefined") {
-        throw new Error("Metamask is not installed.");
-      }
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Authentication required");
 
-      const TenderABI = Tender.abi;
-      await window.ethereum.request({ method: "eth_requestAccounts" });
+      const fd = new FormData();
 
-      const provider = new BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const contract = new Contract(contractAddress, TenderABI, signer);
-
-      const deadline = Math.floor(
-        new Date(formData.bidClosingDate).getTime() / 1000,
-      );
-      const starting = Math.floor(
-        new Date(formData.bidOpeningDate).getTime() / 1000,
-      );
-
-      const tx = await contract.createTender(
-        formData.title,
-        formData.description,
-        formData.category,
-        formData.minBidAmount,
-        formData.maxBidAmount,
-        starting,
-        deadline,
-        formData.location,
-        creator?.id,
-      );
-
-      await tx.wait();
-      console.log("✅ Tender successfully created on Blockchain");
-
-      // const receipt = await tx.wait();
-      // console.log(receipt)
-
-      // // const transactionHash = receipt.transactionHash;
-      // let tempTenderId = "";
-
-      // for (const log of receipt.logs) {
-      //   try {
-      //     const parsedLog = contract.interface.parseLog(log);
-      //     if (parsedLog.name === "TenderCreated") {
-      //       tempTenderId = parsedLog.args[0].toString();
-      //       break;
-      //     }
-      //   } catch (error) {
-      //     continue;
-      //   }
-      // }
-
-      // if (!tempTenderId) {
-      //   throw new Error("Tender ID not found in blockchain event logs");
-      // }
-
-      // console.log(tempTenderId)
-
-      // setBlockchainTenderId(tempTenderId);
-
-      // Store in MongoDB
-      const mongoResponse = await fetch("/api/tender/create-tender", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          issueDetails: parsedIssue,
-          creator,
-        }),
+      Object.entries(formData).forEach(([key, value]) => {
+        fd.append(key, value);
       });
 
-      const mongoData = await mongoResponse.json();
-      if (!mongoResponse.ok) {
-        throw new Error(mongoData.error || "Failed to store in MongoDB");
+      if (parsedIssue?._id) {
+        fd.append("issueId", parsedIssue._id);
       }
 
-      setSuccess("Tender successfully created on MongoDB and Blockchain!");
+      documents.forEach((file) => {
+        fd.append("documents", file);
+      });
+
+      const res = await fetch("/api/tender/create-tender", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: fd,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Tender creation failed");
+
+      alert("Tender created successfully");
+
       setFormData({
         title: "",
         description: "",
@@ -141,10 +92,9 @@ export const MakeTender = () => {
         bidClosingDate: "",
         location: "",
       });
-
-      alert("tender created successfully");
+      setDocuments([]);
     } catch (err) {
-      console.error("❌ Error submitting tender:", err);
+      console.error("❌ Tender Error:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -155,99 +105,84 @@ export const MakeTender = () => {
     return (
       <div className="relative min-h-screen text-white flex items-center justify-center">
         <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
-        <p className="text-red-500 text-lg">Error: Issue details not found.</p>
+        <p className="text-red-500 text-lg">Issue details not found</p>
       </div>
     );
   }
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
   return (
     <div className="relative min-h-screen text-white">
       <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
+
       <div className="relative md:p-6 p-3 max-w-3xl mx-auto">
-        {/* Issue Details */}
+
+        {/* ISSUE DETAILS */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl shadow-lg w-full mb-8 border border-gray-800"
+          className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl shadow-lg mb-8 border border-gray-800"
         >
           <h2 className="text-2xl font-bold mb-4">Issue Details</h2>
-          <div className="space-y-3">
-            <p className="text-gray-300">
-              <strong className="text-white">Type:</strong>{" "}
-              {parsedIssue.issue_type}
-            </p>
-            <p className="text-gray-300">
-              <strong className="text-white">Description:</strong>{" "}
-              {parsedIssue.description}
-            </p>
-            <p className="text-gray-300">
-              <strong className="text-white">Location:</strong>{" "}
-              {parsedIssue.placename}
-            </p>
-          </div>
-          {parsedIssue.image && (
-            <motion.img
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              src={parsedIssue.image}
-              alt="Issue"
-              className="w-full h-48 object-cover mt-4 rounded-xl shadow-md"
-            />
-          )}
-          <p className="text-gray-300 mt-4">
-            <strong className="text-white">Date:</strong>{" "}
-            {parsedIssue.date_of_complaint}
+
+          <p className="text-gray-300">
+            <strong className="text-white">Type:</strong>{" "}
+            {parsedIssue.issue_type}
           </p>
+
+          <p className="text-gray-300 mt-2">
+            <strong className="text-white">Description:</strong>{" "}
+            {parsedIssue.description}
+          </p>
+
+          <p className="text-gray-300 mt-2">
+            <strong className="text-white">Location:</strong>{" "}
+            {parsedIssue.location?.placeName}
+          </p>
+
+ {parsedIssue.images?.length > 0 && (
+          <div className="mt-4">
+            <img
+              src={parsedIssue.images[activeImage]}
+              className="rounded-lg w-full"
+            />
+            <div className="flex gap-2 mt-2">
+              {parsedIssue.images.map((img, i) => (
+                <img
+                  key={i}
+                  src={img}
+                  onClick={() => setActiveImage(i)}
+                  className={`h-16 w-20 cursor-pointer border ${
+                    i === activeImage ? "border-white" : "border-gray-600"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+  
         </motion.div>
 
-        {/* Tender Form */}
+        {/* TENDER FORM */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl shadow-lg w-full border border-gray-800"
+          className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-gray-800"
         >
           <h2 className="text-2xl font-bold mb-6">Enter Tender Details</h2>
 
           <div className="grid gap-4">
             {[
               { label: "Tender Title", name: "title", type: "text" },
-              {
-                label: "Tender Description",
-                name: "description",
-                type: "textarea",
-              },
+              { label: "Description", name: "description", type: "textarea" },
               { label: "Category", name: "category", type: "text" },
               { label: "Min Bid Amount", name: "minBidAmount", type: "number" },
               { label: "Max Bid Amount", name: "maxBidAmount", type: "number" },
-              {
-                label: "Bid Opening Date",
-                name: "bidOpeningDate",
-                type: "date",
-              },
-              {
-                label: "Bid Closing Date",
-                name: "bidClosingDate",
-                type: "date",
-              },
+              { label: "Bid Opening Date", name: "bidOpeningDate", type: "date" },
+              { label: "Bid Closing Date", name: "bidClosingDate", type: "date" },
               { label: "Work Location", name: "location", type: "text" },
             ].map(({ label, name, type }) => (
-              <motion.div
-                key={name}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.05 }}
-                className="mt-2"
-              >
-                <label className="block font-semibold text-gray-300 mb-2">
+              <div key={name}>
+                <label className="block text-gray-300 font-semibold mb-2">
                   {label}
                 </label>
                 {type === "textarea" ? (
@@ -255,8 +190,8 @@ export const MakeTender = () => {
                     name={name}
                     value={formData[name]}
                     onChange={handleChange}
+                    className="w-full bg-[#0f1224] border border-gray-700 p-3 rounded-xl text-white"
                     required
-                    className="w-full border border-gray-700 bg-[#0f1224] p-3 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-gray-500 transition"
                   />
                 ) : (
                   <input
@@ -264,20 +199,43 @@ export const MakeTender = () => {
                     name={name}
                     value={formData[name]}
                     onChange={handleChange}
+                    className="w-full bg-[#0f1224] border border-gray-700 p-3 rounded-xl text-white"
                     required
-                    className="w-full border border-gray-700 bg-[#0f1224] p-3 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-gray-500 transition"
                   />
                 )}
-              </motion.div>
+              </div>
             ))}
+
+            {/* ATTACH DOCUMENTS */}
+            <div>
+              <label className="block text-gray-300 font-semibold mb-2">
+                Attach Documents (PDF / DOC)
+              </label>
+              <input
+                type="file"
+                multiple
+                onChange={handleDocumentChange}
+                className="w-full bg-[#0f1224] border border-gray-700 p-3 rounded-xl
+                text-gray-300 file:bg-white file:text-black
+                file:px-3 file:py-1 file:rounded-lg file:border-0"
+              />
+              {documents.length > 0 && (
+                <div className="mt-2 text-sm text-gray-400">
+                  {documents.map((f, i) => (
+                    <p key={i}>📄 {f.name}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {error && <p className="text-red-400">{error}</p>}
 
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.95 }}
-              type="submit"
               onClick={submitTender}
-              className="bg-white text-black p-3 rounded-xl font-bold mt-6 hover:shadow-lg transition"
               disabled={loading}
+              className="bg-white text-black p-3 rounded-xl font-bold mt-4"
             >
               {loading ? "Creating Tender..." : "Submit Tender"}
             </motion.button>
@@ -287,3 +245,65 @@ export const MakeTender = () => {
     </div>
   );
 };
+
+
+
+ // try {
+    //   if (typeof window.ethereum === "undefined") {
+    //     throw new Error("Metamask is not installed.");
+    //   }
+
+    //   const TenderABI = Tender.abi;
+    //   await window.ethereum.request({ method: "eth_requestAccounts" });
+
+    //   const provider = new BrowserProvider(window.ethereum);
+    //   const signer = await provider.getSigner();
+    //   const contract = new Contract(contractAddress, TenderABI, signer);
+
+    //   const deadline = Math.floor(
+    //     new Date(formData.bidClosingDate).getTime() / 1000,
+    //   );
+    //   const starting = Math.floor(
+    //     new Date(formData.bidOpeningDate).getTime() / 1000,
+    //   );
+
+    //   const tx = await contract.createTender(
+    //     formData.title,
+    //     formData.description,
+    //     formData.category,
+    //     formData.minBidAmount,
+    //     formData.maxBidAmount,
+    //     starting,
+    //     deadline,
+    //     formData.location,
+    //     creator?.id,
+    //   );
+
+    //   await tx.wait();
+    //   console.log(" Tender successfully created on Blockchain");
+
+    //   // const receipt = await tx.wait();
+    //   // console.log(receipt)
+
+    //   // // const transactionHash = receipt.transactionHash;
+    //   // let tempTenderId = "";
+
+    //   // for (const log of receipt.logs) {
+    //   //   try {
+    //   //     const parsedLog = contract.interface.parseLog(log);
+    //   //     if (parsedLog.name === "TenderCreated") {
+    //   //       tempTenderId = parsedLog.args[0].toString();
+    //   //       break;
+    //   //     }
+    //   //   } catch (error) {
+    //   //     continue;
+    //   //   }
+    //   // }
+
+    //   // if (!tempTenderId) {
+    //   //   throw new Error("Tender ID not found in blockchain event logs");
+    //   // }
+
+    //   // console.log(tempTenderId)
+
+    //   // setBlockchainTenderId(tempTenderId);

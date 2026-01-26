@@ -11,7 +11,7 @@ export default function ContractorLogin() {
   const router = useRouter();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
-  const { user, setUser } = useGovUser();
+  const { user, setUser, syncUser } = useGovUser();
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -31,6 +31,7 @@ export default function ContractorLogin() {
         if (token) {
           const decoded = jwtDecode(token);
           setUser(decoded);
+          syncUser();
           setLoading(false);
           router.push("/contractor-sec");
         }

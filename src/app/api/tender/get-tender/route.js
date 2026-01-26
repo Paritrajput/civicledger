@@ -9,7 +9,7 @@ export async function GET() {
     await dbConnect();
 
     // Fetch active tenders from MongoDB
-    const tenders = await Tender.find({ active: true });
+    const tenders = await Tender.find({ status: "OPEN" });
 
     const provider = new ethers.JsonRpcProvider(
       process.env.NEXT_PUBLIC_RPC_URL

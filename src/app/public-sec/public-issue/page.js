@@ -7,6 +7,6 @@ const PeopleIssue = dynamic(() => import("@/Components/People/people-issue"), {
 });
 
 export default function Page() {
-  return ProtectedRoute(PeopleIssue);
-  // return <PeopleIssue />;
+ 
+  return <PeopleIssue />;
 }

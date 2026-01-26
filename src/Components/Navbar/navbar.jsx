@@ -10,7 +10,7 @@ const Navbar = () => {
   const { user, setShowPopup } = useGovUser();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Lock body scroll when mobile menu opens
+
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "auto";
   }, [menuOpen]);
@@ -23,11 +23,9 @@ const Navbar = () => {
 
   return (
     <nav className="sticky top-0 z-50">
-      {/* Glass navbar */}
       <div className="bg-[#14162d8a] backdrop-blur-xl border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
           
-          {/* Logo */}
           <Link
             href="/"
             className="text-2xl font-bold text-white tracking-wide"
@@ -35,7 +33,6 @@ const Navbar = () => {
             CivicLedger
           </Link>
 
-          {/* Desktop Navigation */}
           <ul className="hidden md:flex items-center gap-8 text-gray-300">
             {navLinks.map((link) => (
               <li key={link.href}>
@@ -49,7 +46,6 @@ const Navbar = () => {
             ))}
           </ul>
 
-          {/* Desktop Auth */}
           <div className="hidden md:flex items-center gap-4">
             {user ? (
               <img
@@ -68,7 +64,6 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
           <button
             className="md:hidden text-white"
             onClick={() => setMenuOpen(true)}
@@ -78,7 +73,6 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -88,13 +82,10 @@ const Navbar = () => {
             transition={{ duration: 0.25 }}
             className="fixed inset-0 z-50"
           >
-            {/* Background */}
             <div className="absolute inset-0 bg-linear-to-t from-[#22043e] to-[#04070f]" />
 
-            {/* Panel */}
             <div className="relative h-full flex flex-col">
               
-              {/* Header */}
               <div className="flex items-center justify-between px-6 py-5 border-b border-gray-800">
                 <h1 className="text-xl font-bold">CivicLedger</h1>
                 <X
@@ -104,7 +95,6 @@ const Navbar = () => {
                 />
               </div>
 
-              {/* Links */}
               <div className="flex flex-col gap-6 px-6 py-10 text-lg text-gray-300">
                 {navLinks.map((link) => (
                   <Link

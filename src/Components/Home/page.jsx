@@ -9,11 +9,12 @@ import { useRouter } from "next/navigation";
 
 export default function HomePage() {
   const router = useRouter();
-  const { user } = useGovUser();
+  const { user, setUser } = useGovUser();
   console.log(user);
 
   const handleLogout = async () => {
     localStorage.removeItem("token");
+      setUser(null);
     router.push("/login");
   };
   return (

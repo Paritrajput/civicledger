@@ -1,62 +1,70 @@
 "use client";
 
-import axios from "axios";
-import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
+import { useNotification } from "@/Context/NotificationContext";
 
 const BidForm = () => {
-  const [bidAmount, setBidAmount] = useState("");
-  const [proposalDocument, setProposalDocument] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [contractorId, setContractorId] = useState("");
-
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const blockchainTenderId = searchParams.get("tenderId");
   const tenderId = searchParams.get("mongoId");
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
+  const [bidAmount, setBidAmount] = useState("");
+  const [timeline, setTimeline] = useState("");
+  const [remarks, setRemarks] = useState("");
+  const [proposalFile, setProposalFile] = useState(null);
 
-    axios
-      .get("/api/contractor/profile", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => setContractorId(res.data._id))
-      .catch(() => localStorage.removeItem("token"));
-  }, []);
+  const [loading, setLoading] = useState(false);
+  const {error, success, warning} = useNotification();
+ 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!proposalFile) {
+      warning("Please upload proposal document");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await fetch("/api/bidding", {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        warning("Authentication required");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("tenderId", tenderId);
+      formData.append("blockchainTenderId", blockchainTenderId);
+      formData.append("bidAmount", bidAmount);
+      formData.append("timeline", timeline);
+      formData.append("remarks", remarks);
+      formData.append("proposal", proposalFile);
+
+      const res = await fetch("/api/bidding", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          blockchainTenderId,
-          tenderId,
-          contractorId,
-          bidAmount,
-          proposalDocument,
-        }),
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (response.ok) {
-        alert("Bid placed successfully!");
-        router.back();
-      } else {
-        alert(data.error || "Failed to place bid");
+      if (!res.ok) {
+        error(data.error || "Failed to place bid");
       }
-    } catch (error) {
-      console.error(error);
-      alert("Something went wrong while submitting the bid");
+
+      success("Bid placed successfully!");
+      router.back();
+    } catch (err) {
+      console.error(err);
+      error(err.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -64,59 +72,88 @@ const BidForm = () => {
 
   return (
     <div className="relative min-h-screen text-white">
-      {/* Fixed background */}
+  
       <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
 
-      {/* Content */}
-      <div className="relative flex justify-center items-start p-4 md:p-6">
+      <div className="relative flex justify-center p-4 md:p-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md bg-[#14162d8a] backdrop-blur-xl rounded-2xl border border-gray-800 p-6 shadow-lg"
         >
           <h1 className="text-2xl font-bold text-center mb-6">
-            Bidding Portal
+            Place Your Bid
           </h1>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Bid Amount */}
+        
             <div>
               <label className="block text-sm text-gray-300 mb-1">
-                Bid Amount
+                Bid Amount (₹)
               </label>
               <input
                 type="number"
                 value={bidAmount}
                 onChange={(e) => setBidAmount(e.target.value)}
-                placeholder="Enter bid amount"
                 required
-                className="w-full px-4 py-3 bg-[#0f1224] border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-gray-500"
+                min="1"
+                className="w-full px-4 py-3 bg-[#0f1224] border border-gray-700 rounded-xl text-white focus:outline-none focus:border-gray-500"
               />
             </div>
 
-            {/* Proposal Document */}
+          
             <div>
               <label className="block text-sm text-gray-300 mb-1">
-                Proposal Document Link
+                Estimated Completion Time
               </label>
               <input
                 type="text"
-                value={proposalDocument}
-                onChange={(e) => setProposalDocument(e.target.value)}
-                placeholder="Enter proposal document URL"
+                value={timeline}
+                onChange={(e) => setTimeline(e.target.value)}
+                placeholder="e.g. 6 months"
                 required
-                className="w-full px-4 py-3 bg-[#0f1224] border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-gray-500"
+                className="w-full px-4 py-3 bg-[#0f1224] border border-gray-700 rounded-xl text-white"
               />
             </div>
 
-            {/* Submit */}
+          
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">
+                Technical Approach / Notes
+              </label>
+              <textarea
+                rows={3}
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                placeholder="Brief work approach, materials, team etc."
+                className="w-full px-4 py-3 bg-[#0f1224] border border-gray-700 rounded-xl text-white"
+              />
+            </div>
+
+       
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">
+                Proposal Document (PDF / DOC)
+              </label>
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx"
+                onChange={(e) => setProposalFile(e.target.files[0])}
+                required
+                className="w-full text-sm text-gray-400
+                  file:bg-white file:text-black file:px-4 file:py-2
+                  file:rounded-lg file:border-0 file:cursor-pointer"
+              />
+            </div>
+
+       
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.95 }}
               disabled={loading}
               className="w-full bg-white text-black py-3 rounded-xl font-semibold hover:bg-gray-200 transition disabled:opacity-60"
             >
-              {loading ? "Submitting..." : "Place Bid"}
+              {loading ? "Submitting..." : "Submit Bid"}
             </motion.button>
           </form>
         </motion.div>

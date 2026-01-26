@@ -3,108 +3,123 @@ import Issue from "@/Models/Issue";
 import { NextResponse } from "next/server";
 import cloudinary from "cloudinary";
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
+import { getUserFromRequest } from "@/lib/auth";
 
-// Configure Cloudinary
+// Cloudinary config
 cloudinary.v2.config({
   cloud_name: "dt1cqoxe8",
   api_key: "736378735539485",
   api_secret: "iJfGZ2TqF348thygERO5RzVgjpM",
 });
 
+
+
 export async function POST(req) {
   try {
     await dbConnect();
-    console.log("Incoming POST request");
+
+
+    const user = getUserFromRequest(req);
+
+    if (!user || user.role !== "public") {
+      return NextResponse.json(
+        { error: "Only public users can raise issues" },
+        { status: 403 }
+      );
+    }
 
     const formData = await req.formData();
     const body = {};
 
     formData.forEach((value, key) => {
-      if (key === "image" && value instanceof Blob) {
-        body.image = value;
-      } else {
-        body[key] = value;
-      }
+      body[key] = value;
     });
-    console.log("receivrd body:", body);
-    // Debugging: Log raw location
-    console.log("Raw location:", body.location);
 
-    // Ensure location is properly parsed
-    if (body.location) {
-      try {
-        body.location = JSON.parse(body.location);
-
-        // Ensure lat and lng exist
-        if (!body.location.lat || !body.location.lng) {
-          throw new Error("Missing lat or lng in location data");
-        }
-
-        // Convert lat/lng to numbers
-        //   body.location.lat = parseFloat(body.location.lat);
-        //   body.location.lng = parseFloat(body.location.lng);
-
-        console.log("Parsed location:", body.location);
-      } catch (error) {
-        console.error("Error parsing location:", error);
-        return NextResponse.json(
-          { error: "Invalid location format" },
-          { status: 400 }
-        );
-      }
-    } else {
+    if (!body.issue_type || !body.description || !body.location) {
       return NextResponse.json(
-        { error: "Location is required" },
+        { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Upload image if provided
-    let imageUrl = null;
-    if (body.image) {
-      const buffer = await body.image.arrayBuffer();
-      const base64Image = Buffer.from(buffer).toString("base64");
-      const dataUri = `data:${body.image.type};base64,${base64Image}`;
+    let parsedLocation;
+    try {
+      const loc = JSON.parse(body.location);
+      const lat = Number(loc.lat);
+      const lng = Number(loc.lng);
 
-      const uploadedResponse = await cloudinary.v2.uploader.upload(dataUri, {
-        folder: "contracker",
-      });
-      imageUrl = uploadedResponse.secure_url;
+      if (isNaN(lat) || isNaN(lng)) throw new Error();
+
+      parsedLocation = {
+        type: "Point",
+        coordinates: [lng, lat],
+        placeName: body.placename || "",
+      };
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid location format" },
+        { status: 400 }
+      );
     }
-    console.log("Incoming userId:", body.userId);
 
-    const newIssue = new Issue({
-      userId: new mongoose.Types.ObjectId(body.userId),
-      issue_type: body.issue_type,
-      description: body.description,
-      date_of_complaint: body.date_of_complaint,
-      placename: body.placename,
-      location: body.location,
-      approval: parseInt(body.approval, 10),
-      denial: parseInt(body.denial, 10),
-      status: body.status,
-      image: imageUrl,
+    const images = [];
+
+    if (body.image instanceof Blob) {
+      const buffer = Buffer.from(await body.image.arrayBuffer());
+      const uploadRes = await cloudinary.v2.uploader.upload(
+        `data:${body.image.type};base64,${buffer.toString("base64")}`,
+        { folder: "contracker/issues" }
+      );
+      images.push(uploadRes.secure_url);
+    }
+
+
+    const issue = await Issue.create({
+      reportedBy: new mongoose.Types.ObjectId(user.id),
+      issue_type: body.issue_type.trim(),
+      description: body.description.trim(),
+      images,
+      location: parsedLocation,
+
+      status: "PENDING_VALIDATION",
+
+      publicValidation: {
+        approvals: 0,
+        rejections: 0,
+        voters: [],
+      },
+
+      aiVerification: {},
+      governmentReview: {},
     });
 
-    await newIssue.save();
-
     return NextResponse.json(
-      { message: "Issue created successfully", issue: newIssue },
+      { message: "Issue submitted successfully", issue },
       { status: 201 }
     );
   } catch (error) {
-    console.error("Error creating issue:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Issue creation error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
+
 export async function GET() {
   try {
-    const issues = await Issue.find({ status: "Pending" });
-    return NextResponse.json({ issues: issues }, { status: 200 });
+    await dbConnect();
+
+    const issues = await Issue.find({ status: "PENDING_VALIDATION" })
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    return NextResponse.json({ issues }, { status: 200 });
   } catch {
     return NextResponse.json(
-      { error: "error getting issues" },
+      { error: "Failed to fetch issues" },
       { status: 500 }
     );
   }

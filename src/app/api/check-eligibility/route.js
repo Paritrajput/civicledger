@@ -10,7 +10,7 @@ export async function POST(req) {
     }
 
     const distance = getDistance(userLat, userLon, issueLat, issueLon);
-    const allowedRadius = 1000; 
+    const allowedRadius = 100000; 
 
     return new Response(
       JSON.stringify({ eligible: distance <= allowedRadius })
