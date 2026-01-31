@@ -183,6 +183,10 @@ export async function POST(req) {
     };
     tender.status = "OPEN";
     await tender.save();
+    const issue = await Issue.findById(issueId);
+    issue.status = "TENDER_CREATED";
+    issue.tenderId = tender._id;
+    await issue.save();
 
     return NextResponse.json(
       { message: "Tender created successfully", tenderId: tender._id },

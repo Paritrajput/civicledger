@@ -10,24 +10,18 @@ export async function POST(req) {
 
   try {
     const { email, password } = await req.json();
-    console.log(email);
+    console.log(email, password);
     let user = await Government.findOne({ email });
+    if(!user){
+      return NextResponse.json({error: "Invalid credentials"},{status:401});
+    }
 
     console.log(user);
     let isOwner = false;
     let isSuperOwner = false;
 
-    // if (!user) {
-    //   user = await Government.findOne({ email });
-    //   console.log(user);
-    //   isOwner = false;
-    //   if (!user) {
-    //     return NextResponse.json(
-    //       { error: "Invalid credentials" },
-    //       { status: 401 }
-    //     );
-    //   }
-    // }
+    
+
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {

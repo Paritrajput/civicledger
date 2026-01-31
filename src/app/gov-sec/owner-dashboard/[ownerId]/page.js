@@ -4,21 +4,25 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import axios from "axios";
 import { motion } from "framer-motion";
+import { useNotification } from "@/Context/NotificationContext";
 
 export default function OwnerDashboard() {
   const params = useParams();
-  const ownerId = params?.ownerId; // Safe access
+  const ownerId = params?.ownerId;
 
   const [adminRequests, setAdminRequests] = useState([]);
   const [loading, setLoading] = useState(false);
+  const {error, warning, success}=useNotification();
 
   const fetchAdminRequests = async () => {
     setLoading(true);
     try {
       const res = await axios.get("/api/admin");
       setAdminRequests(res.data.data);
+      success("Admin requests loaded successfully");
     } catch (error) {
       console.error("Error fetching admin requests", error);
+      error("Failed to load admin requests");
     } finally {
       setLoading(false);
     }
@@ -26,7 +30,7 @@ export default function OwnerDashboard() {
 
   const approveRequest = async (id) => {
     if (!ownerId) {
-      alert("Owner ID not found.");
+      warning("Owner ID is missing");
       return;
     }
 
@@ -34,9 +38,10 @@ export default function OwnerDashboard() {
       const response = await axios.post(`/api/admin/${id}`, { ownerId });
       console.log(response.data);
       setAdminRequests((prev) => prev.filter((req) => req._id !== id));
-      alert("Admin request approved!");
+      success("Admin request approved successfully");
     } catch (error) {
       console.error("Error approving admin", error);
+      error("Failed to approve admin request");
     }
   };
 

@@ -41,33 +41,17 @@ const GovernmentSchema = new mongoose.Schema(
 
     verifiedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Government", // SUPER_OWNER verifies others
+      ref: "Owner", 
     },
 
-    // 🔹 NEW: Government hierarchy
-    role: {
-      type: String,
-      enum: ["ADMIN", "OWNER", "SUPER_OWNER"],
-      default: "ADMIN",
-      index: true,
-    },
 
-    // 🔹 Jurisdiction control
-    jurisdiction: {
-      state: String,
-      district: String,
-      ward: String,
-    },
+    // permissions: {
+    //   canCreateTender: { type: Boolean, default: false },
+    //   canApproveTender: { type: Boolean, default: false },
+    //   canReleaseFunds: { type: Boolean, default: false },
+    //   canVerifyContractors: { type: Boolean, default: false },
+    // },
 
-    // 🔹 Permission matrix
-    permissions: {
-      canCreateTender: { type: Boolean, default: false },
-      canApproveTender: { type: Boolean, default: false },
-      canReleaseFunds: { type: Boolean, default: false },
-      canVerifyContractors: { type: Boolean, default: false },
-    },
-
-    // 🔹 Abuse / suspension
     isBlocked: {
       type: Boolean,
       default: false,

@@ -13,21 +13,13 @@ export async function POST(req) {
     console.log(email);
 
     let user = await Owner.findOne({ email });
-    console.log(user);
+    if(!user){
+      return NextResponse.json({error: "Invalid credentials"},{status:401});
+    }
     let isOwner = true;
     let isSuperOwner = false;
 
-    // if (!user) {
-    //   user = await Government.findOne({ email });
-    //   console.log(user);
-    //   isOwner = false;
-    //   if (!user) {
-    //     return NextResponse.json(
-    //       { error: "Invalid credentials" },
-    //       { status: 401 }
-    //     );
-    //   }
-    // }
+ 
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
