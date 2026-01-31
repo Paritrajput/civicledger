@@ -2,12 +2,13 @@
   "crons": [
     {
       "path": "/api/bid-evaluate",
-      "schedule": "0 * * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/contract-voting/public-voting-close",
-      "schedule": "0 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
+
   
