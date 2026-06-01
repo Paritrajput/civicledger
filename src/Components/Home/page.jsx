@@ -1,123 +1,189 @@
 "use client";
 
 import Link from "next/link";
-// import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { useGovUser } from "@/Context/govUser";
-import { useRouter } from "next/navigation";
 
 export default function HomePage() {
-  const router = useRouter();
-  const { user, setUser } = useGovUser();
-  console.log(user);
-
-  const handleLogout = async () => {
-    localStorage.removeItem("token");
-      setUser(null);
-    router.push("/login");
-  };
   return (
-    <main className="min-h-screen bg-gray-900/50 text-white">
-      <section className="px-6 md:px-20 pt-20 pb-10 text-center space-y-6 bg-linear-to-t from-[#22043e] to-[#04070f]">
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-4xl md:text-6xl font-bold leading-tight"
-        >
-          Welcome to CivicLedger
-        </motion.h1>
-        <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto">
-          Revolutionizing public infrastructure through transparency and
-          blockchain.
-        </p>
+    <main className="min-h-screen text-white bg-[#04070f] overflow-hidden">
+      
+      {/* BACKGROUND GLOW */}
+      <div className="absolute top-[-120px] left-1/2 -translate-x-1/2 w-[500px] h-[500px] md:w-[700px] md:h-[700px] bg-purple-600 opacity-20 blur-[140px] rounded-full"></div>
 
-        <div className="flex justify-center flex-wrap gap-4 pt-6">
-          {!user ? (
-            <Link href="/login" className="flex gap-3">
-              <button className="bg-white text-black hover:bg-gray-200 font-semibold px-3 py-2 rounded-2xl flex gap-1 items-center">
-                Login
-                <ArrowRight
-                  className="ml-2 group-hover:translate-x-1 transition"
-                  size={18}
-                />
+      {/* HERO */}
+      <section className="relative px-6 pt-28 pb-16 md:pt-32 md:pb-24 text-center">
+        <div className="max-w-6xl mx-auto">
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            className="text-3xl sm:text-4xl md:text-6xl font-bold leading-snug tracking-tight"
+          >
+            Reinventing Public Infrastructure
+            <br />
+            <span className="bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
+              With Transparency & Trust
+            </span>
+          </motion.h1>
+
+          <p className="mt-6 text-gray-400 text-base sm:text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+            CivicLedger empowers governments, contractors, and citizens with
+            blockchain-backed transparency, AI-powered verification, and real-time
+            accountability.
+          </p>
+
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mt-10">
+            <Link href="/login" className="w-full sm:w-auto">
+              <button className="w-full sm:w-auto bg-white text-black px-6 py-3 rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-gray-200 transition">
+                Get Started
+                <ArrowRight size={18} />
               </button>
             </Link>
-          ) : (
-            <div className=" flex gap-3">
-              <button
-                className="bg-white px-3 py-3 text-black rounded-xl  items-center cursor-default flex gap-1"
-                onClick={handleLogout}
-              >
-                Logout{" "}
-                <ArrowRight
-                  className="ml-2 group-hover:translate-x-1 transition"
-                  size={18}
-                />
+
+            <Link href="/public-sec" className="w-full sm:w-auto">
+              <button className="w-full sm:w-auto border border-gray-600 px-6 py-3 rounded-2xl hover:bg-white hover:text-black transition">
+                Explore Platform
               </button>
-            </div>
-          )}
-
-          {/* <Link href="/contractor-login">
-            <button variant="outline" className="border-white text-white hover:bg-white hover:text-black font-semibold">
-              Login as Contractor
-            </button>
-          </Link> */}
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="px-6 md:px-20 py-7 pb-24 bg-linear-to-t from-[#04070f] to-[#22043e] text-center">
-        <h2 className="text-3xl md:text-4xl font-bold mb-10">
-          Explore Public Features
-        </h2>
+      {/* TRUST STRIP */}
+      <section className="px-6 pb-12 text-center">
+        <p className="text-gray-500 text-xs sm:text-sm uppercase tracking-widest">
+          Built for transparency • Designed for accountability • Powered by blockchain
+        </p>
+      </section>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Feature: View Issues */}
-          <FeatureCard
-            title="View Reported Issues"
-            desc="Browse public issues raised by citizens with full transparency."
-            href="/public-sec/current-issues"
-          />
-          {/* Feature: Upload Issue */}
-          <FeatureCard
-            title="Upload New Issue"
-            desc="Report a problem in your locality with image and location."
-            href="/public-sec/public-issue"
+      {/* FEATURES */}
+      <section className="px-6 py-16 md:py-20">
+        <div className="max-w-6xl mx-auto text-center">
+          <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-12">
+            A New Standard for Governance
+          </h2>
+
+          <div className="grid md:grid-cols-3 gap-6 md:gap-8">
+            <Card
+              title="Immutable Transparency"
+              desc="All contracts, funds, and activities are recorded on blockchain, eliminating corruption and manipulation."
+            />
+            <Card
+              title="AI Verification Engine"
+              desc="Milestones are verified using intelligent image comparison with real-world data."
+            />
+            <Card
+              title="Real-time Monitoring"
+              desc="Track projects, funds, and contractor performance live with full public visibility."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* VISUAL PANEL */}
+      <section className="px-6 py-16 md:py-20">
+        <div className="max-w-6xl mx-auto bg-gradient-to-br from-purple-900/40 to-black rounded-3xl p-6 md:p-10 border border-gray-800 backdrop-blur-xl">
+          <div className="grid md:grid-cols-2 gap-8 md:gap-10 items-center">
             
-          />
-          {/* Feature: Active Contracts */}
-          <FeatureCard
-            title="Active Contracts"
-            desc="Track ongoing public contracts and monitor progress live."
-            href="/public-sec/current-contract"
-          />
+            <div>
+              <h3 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">
+                Built for Modern Governance
+              </h3>
+              <p className="text-gray-400 leading-relaxed text-sm sm:text-base">
+                CivicLedger integrates blockchain, AI, and real-time systems to
+                ensure every public project is accountable, trackable, and verifiable
+                from start to finish.
+              </p>
+            </div>
+
+            {/* <div className="h-48 sm:h-64 bg-[#0f172a] rounded-2xl border border-gray-800 flex items-center justify-center text-gray-500 text-sm">
+              System Visualization
+            </div> */}
+            <div className="h-56 sm:h-64 bg-[#0f172a] rounded-2xl border border-gray-800 p-4 flex flex-col gap-3">
+  
+  <div className="flex justify-between items-center">
+    <div className="text-xs text-gray-400">Active Tender</div>
+    <div className="text-green-400 text-xs">Live</div>
+  </div>
+
+  <div className="bg-[#1e293b] p-3 rounded-lg">
+    <div className="text-sm font-semibold">Road Construction - Phase 2</div>
+    <div className="text-xs text-gray-400 mt-1">Progress: 68%</div>
+
+    <div className="w-full bg-gray-700 h-2 rounded-full mt-2">
+      <div className="bg-purple-500 h-2 rounded-full w-[68%]"></div>
+    </div>
+  </div>
+
+  <div className="flex justify-between text-xs text-gray-400">
+    <span>Funds Released</span>
+    <span>₹12.4L</span>
+  </div>
+
+  <div className="text-xs text-purple-400">
+    AI Verification: Completed ✅
+  </div>
+</div>
+          </div>
         </div>
       </section>
+
+      {/* HOW IT WORKS */}
+      <section className="px-6 py-16 md:py-20 text-center">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-12">
+            How CivicLedger Works
+          </h2>
+
+          <div className="grid md:grid-cols-3 gap-6 md:gap-8">
+            <Step step="01" title="Tender Creation" desc="Government publishes transparent tenders." />
+            <Step step="02" title="Smart Bidding" desc="Contractors compete fairly with traceable bids." />
+            <Step step="03" title="AI Verification" desc="Milestones verified before fund release." />
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="px-6 py-20 text-center">
+        <div className="max-w-4xl mx-auto bg-gradient-to-r from-purple-700 to-pink-600 rounded-3xl p-8 md:p-12 shadow-2xl">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6">
+            Experience Transparent Governance Today
+          </h2>
+
+          <Link href="/login">
+            <button className="w-full sm:w-auto bg-white text-black px-8 py-3 rounded-2xl font-semibold hover:bg-gray-200 transition">
+              Join CivicLedger
+            </button>
+          </Link>
+        </div>
+      </section>
+
+
     </main>
   );
 }
 
-function FeatureCard({ title, desc, href }) {
+/* COMPONENTS */
+
+function Card({ title, desc }) {
   return (
     <motion.div
       whileHover={{ scale: 1.05 }}
-      className="bg-[#14162d8a] rounded-2xl p-6 shadow-lg flex flex-col justify-between border border-gray-800"
+      className="bg-[#111827] p-6 rounded-2xl border border-gray-800 hover:border-purple-500 transition"
     >
-      <div>
-        <h3 className="text-xl font-semibold mb-2">{title}</h3>
-        <p className="text-gray-400 mb-4">{desc}</p>
-      </div>
-      <Link href={href}>
-        <span className="text-black  bg-white px-3 py-2 rounded-2xl font-medium inline-flex items-center group">
-          Explore{" "}
-          <ArrowRight
-            className="ml-2 group-hover:translate-x-1 transition"
-            size={18}
-          />
-        </span>
-      </Link>
+      <h3 className="text-lg sm:text-xl font-semibold mb-2">{title}</h3>
+      <p className="text-gray-400 text-sm sm:text-base">{desc}</p>
     </motion.div>
+  );
+}
+
+function Step({ step, title, desc }) {
+  return (
+    <div className="bg-[#111827] p-6 rounded-2xl border border-gray-800">
+      <div className="text-purple-400 font-bold mb-2">{step}</div>
+      <h3 className="text-lg sm:text-xl font-semibold mb-2">{title}</h3>
+      <p className="text-gray-400 text-sm sm:text-base">{desc}</p>
+    </div>
   );
 }

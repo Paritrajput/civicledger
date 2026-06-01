@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import Link from "next/link";
@@ -12,12 +10,16 @@ export default function GovHomePage() {
   const router = useRouter();
   const { user, setUser } = useGovUser();
   const handleLogout = async () => {
-    localStorage.removeItem("token");
-      setUser(null);
-    router.push("/login");
+    await fetch("/api/auth/logout", {
+      method: "POST",
+    });
+
+    setUser(null);
+
+    router.replace("/");
   };
 
-  console.log("user", user);
+  // console.log("user", user);
 
   return (
     <main className="relative min-h-screen text-white">
@@ -104,7 +106,6 @@ export default function GovHomePage() {
         </div>
       )}
 
-  
       <section className="relative px-6 md:px-20 py-12 text-center">
         <h2 className="text-3xl md:text-4xl font-bold mb-10 text-white">
           Actions You Can Take

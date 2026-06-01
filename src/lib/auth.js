@@ -1,15 +1,15 @@
 import jwt from "jsonwebtoken";
+import { cookies } from "next/headers";
 
-export function getUserFromRequest(req) {
-  const authHeader = req.headers.get("authorization");
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    throw new Error("Unauthorized");
-  }
-
-  const token = authHeader.split(" ")[1];
-
+export async function getUserFromRequest(req) {
   try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token")?.value;
+
+    if (!token) {
+      throw new Error("Unauthorized");
+    }
+
     return jwt.verify(token, process.env.JWT_SECRET);
   } catch {
     throw new Error("Invalid token");

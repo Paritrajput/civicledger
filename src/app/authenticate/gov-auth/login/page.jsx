@@ -29,15 +29,17 @@ export default function AdminLogin() {
     try {
       const res = await axios.post("/api/gov-sec/login", formData);
       if (res.data.success) {
-        localStorage.setItem("token", res.data.token);
-        const token = localStorage.getItem("token");
-        if (token) {
-          const decoded = jwtDecode(token);
-          setUser(decoded);
-          syncUser(); 
-          setLoading(false);
-          router.push("/gov-sec");
-        }
+        await syncUser();
+router.replace("/");
+      //   localStorage.setItem("token", res.data.token);
+      //   const token = localStorage.getItem("token");
+      //   if (token) {
+      //     const decoded = jwtDecode(token);
+      //     setUser(decoded);
+      //     syncUser(); 
+      //     setLoading(false);
+      //     router.push("/gov-sec");
+      //   }
       }
     } catch (err) {
       setError(err.response?.data?.error || "Login failed");

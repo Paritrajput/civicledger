@@ -10,15 +10,18 @@ export default function ContractorHomePage() {
   const router = useRouter();
   const { user, setUser } = useGovUser();
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+    });
+
     setUser(null);
-    router.push("/login");
+
+    router.replace("/");
   };
 
   return (
     <main className="relative min-h-screen text-white">
-    
       <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
 
       <section className="px-6 md:px-20 pt-20 pb-14 text-center space-y-6">

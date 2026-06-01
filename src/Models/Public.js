@@ -45,8 +45,8 @@ const userSchema = new mongoose.Schema(
     },
 
 
-    emailOTP: String,
-    otpExpiry: Date,
+    // emailOTP: String,
+    // otpExpiry: Date,
 
 
     isBlocked: {

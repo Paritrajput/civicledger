@@ -46,8 +46,21 @@ export async function POST(req) {
       { expiresIn: "7d" }
     );
 
-    return NextResponse.json({ success: true, token });
-  } catch (error) {
+ const response = NextResponse.json({
+    success: true,
+    token,
+  });
+
+  response.cookies.set("token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 2,
+  });
+
+  return response;
+} catch (error) {
     console.error("Auth Error:", error);
     return NextResponse.json(
       { error: "Server error. Please try again." },

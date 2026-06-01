@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { motion } from "framer-motion";
 import { useSession, signIn } from "next-auth/react";
-import { jwtDecode } from "jwt-decode";
 import { useGovUser } from "@/Context/govUser";
 
 export default function PublicLogin() {
@@ -25,9 +24,8 @@ export default function PublicLogin() {
     try {
       const res = await axios.post("/api/public-sec/login", formData);
       if (res.data.success) {
-        localStorage.setItem("token", res.data.token);
-        syncUser();
-        router.push("/");
+        await syncUser();
+        router.replace("/");
       }
     } catch (err) {
       setError(err.response?.data?.error || "Login failed");
@@ -111,23 +109,10 @@ export default function PublicLogin() {
 export function LoginWithGoogle() {
   const router = useRouter();
   const { data: session } = useSession();
-  console.log(session?.user.jwt);
+
   useEffect(() => {
     if (session?.user?.jwt) {
-      const userData = {
-        token: session.user.jwt,
-        id: session.user.id,
-        name: session.user.username,
-        email: session.user.email,
-        role: session.user.role,
-      };
-      console.log("token:", session.user.jwt);
-      const decoded = jwtDecode(session.user.jwt);
-
-      console.log(decoded);
-      localStorage.setItem("token", session.user.jwt); // ✅
-
-      router.push("/");
+      router.push("/redirect");
     }
   }, [session]);
 

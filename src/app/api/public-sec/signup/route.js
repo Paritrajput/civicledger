@@ -1,35 +1,62 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import Public from "@/Models/Public";
+import PendingUser from "@/Models/PendingUser";
 import { dbConnect } from "@/lib/dbConnect";
 import nodemailer from "nodemailer";
 
 export async function POST(req) {
   await dbConnect();
+
   const { name, email, password } = await req.json();
 
   const existingUser = await Public.findOne({ email });
+
   if (existingUser) {
     return NextResponse.json(
       { error: "Email already registered" },
       { status: 400 }
     );
   }
-  let generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
-  const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); //10min
-  const hashedOTP = await bcrypt.hash(generatedOTP, 10);
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const newContractor = new Public({
+
+  const generatedOTP = Math.floor(
+    100000 + Math.random() * 900000
+  ).toString();
+
+  const hashedOTP = await bcrypt.hash(
+    generatedOTP,
+    10
+  );
+
+  const hashedPassword = await bcrypt.hash(
+    password,
+    10
+  );
+
+await PendingUser.findOneAndUpdate(
+  { email },
+  {
     name,
     email,
     password: hashedPassword,
     emailOTP: hashedOTP,
-    otpExpiry: otpExpiry,
-  });
-  await newContractor.save();
+    lastOtpSentAt: new Date(),
+    expiresAt: new Date(
+      Date.now() + 10 * 60 * 1000
+    ),
+  },
+  {
+    upsert: true,
+    new: true,
+  }
+);
+
   await sendOTP(email, generatedOTP);
 
-  return NextResponse.json({ success: true, message: "Signup successful" });
+  return NextResponse.json({
+    success: true,
+    message: "OTP sent",
+  });
 }
 async function sendOTP(email, otp) {
   try {

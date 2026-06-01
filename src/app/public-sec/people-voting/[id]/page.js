@@ -16,8 +16,7 @@ const PeopleVote = () => {
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [alreadyVoted, setAlreadyVoted] = useState(false);
-  const {error, success, warning} = useNotification();
-
+  const { error, success, warning } = useNotification();
 
   useEffect(() => {
     const fetchIssue = async () => {
@@ -51,10 +50,9 @@ const PeopleVote = () => {
       },
       () => {
         warning("Location permission required to vote");
-      }
+      },
     );
   }, []);
-
 
   useEffect(() => {
     if (!userLocation || !issue?.location) return;
@@ -82,16 +80,9 @@ const PeopleVote = () => {
     checkEligibility();
   }, [userLocation, issue]);
 
-
   const handleVoting = async (voteType) => {
     if (!eligible) {
       warning("You are not eligible to vote on this issue.");
-      return;
-    }
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-      warning("Login required");
       return;
     }
 
@@ -102,11 +93,10 @@ const PeopleVote = () => {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           issueId: issue._id,
-          vote: voteType, 
+          vote: voteType,
         }),
       });
 
@@ -141,7 +131,6 @@ const PeopleVote = () => {
       setIsVoting(false);
     }
   };
-
 
   if (loading) {
     return (
@@ -227,14 +216,14 @@ const PeopleVote = () => {
                   onClick={() => handleVoting("APPROVE")}
                   className="px-6 py-3 bg-green-500 rounded-xl font-semibold"
                 >
-                   Approve
+                  Approve
                 </button>
                 <button
                   disabled={isVoting}
                   onClick={() => handleVoting("REJECT")}
                   className="px-6 py-3 bg-red-500 rounded-xl font-semibold"
                 >
-                   Reject
+                  Reject
                 </button>
               </div>
             )}

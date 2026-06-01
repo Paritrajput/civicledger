@@ -89,7 +89,7 @@ function TenderDesc() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-[#14162d8a] backdrop-blur-xl rounded-2xl border border-gray-800 p-6 space-y-4"
         >
-          <InfoRow label="Blockchain Tender ID" value={tenderData.blockchain?.tenderId || "—"} />
+          {/* <InfoRow label="Blockchain Tender ID" value={tenderData.blockchain?.tenderId || "—"} /> */}
           <InfoRow label="Title" value={tenderData.title} />
           <InfoRow label="Description" value={tenderData.description} />
           <InfoRow label="Category" value={tenderData.category || "—"} />

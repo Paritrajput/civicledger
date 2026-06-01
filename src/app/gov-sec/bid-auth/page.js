@@ -78,15 +78,12 @@ function BidAuth() {
 
   const approveBid = async (bidId, reason = null) => {
     setIsSubmitting(true);
-    const token = localStorage.getItem("token");
-    if (!token) throw new Error("Authentication required");
 
     try {
       const res = await fetch("/api/bid-approve", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           tenderId: tender._id,

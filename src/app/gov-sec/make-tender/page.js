@@ -23,14 +23,14 @@ export const MakeTender = () => {
   const { user } = useGovUser();
 
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
+title: `Tender for ${parsedIssue.issue_type}`,
+description: parsedIssue.description,
     category: "",
     minBidAmount: "",
     maxBidAmount: "",
     bidOpeningDate: "",
     bidClosingDate: "",
-    location: "",
+    location:{ lat: parsedIssue?.location.coordinates[1], lng: parsedIssue?.location.coordinates[0], placeName: parsedIssue?.location.placeName } || null,
   });
 
   const [documents, setDocuments] = useState([]);
@@ -52,14 +52,22 @@ export const MakeTender = () => {
     setError(null);
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("Authentication required");
-
       const fd = new FormData();
 
       Object.entries(formData).forEach(([key, value]) => {
-        fd.append(key, value);
+        if (key !== "location") {
+          fd.append(key, value);
+        }
       });
+
+     fd.append(
+  "location",
+  JSON.stringify({
+    lng: parsedIssue.location.coordinates[0],
+    lat: parsedIssue.location.coordinates[1],
+    placeName: parsedIssue.location.placeName,
+  })
+);
 
       if (parsedIssue?._id) {
         fd.append("issueId", parsedIssue._id);
@@ -71,9 +79,6 @@ export const MakeTender = () => {
 
       const res = await fetch("/api/tender/create-tender", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
         body: fd,
       });
 
@@ -90,11 +95,11 @@ export const MakeTender = () => {
         maxBidAmount: "",
         bidOpeningDate: "",
         bidClosingDate: "",
-        location: "",
+        location: parsedIssue.location,
       });
       setDocuments([]);
     } catch (err) {
-      console.error("❌ Tender Error:", err);
+      console.error("Tender Error:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -115,7 +120,6 @@ export const MakeTender = () => {
       <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
 
       <div className="relative md:p-6 p-3 max-w-3xl mx-auto">
-
         {/* ISSUE DETAILS */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -139,27 +143,26 @@ export const MakeTender = () => {
             {parsedIssue.location?.placeName}
           </p>
 
- {parsedIssue.images?.length > 0 && (
-          <div className="mt-4">
-            <img
-              src={parsedIssue.images[activeImage]}
-              className="rounded-lg w-full"
-            />
-            <div className="flex gap-2 mt-2">
-              {parsedIssue.images.map((img, i) => (
-                <img
-                  key={i}
-                  src={img}
-                  onClick={() => setActiveImage(i)}
-                  className={`h-16 w-20 cursor-pointer border ${
-                    i === activeImage ? "border-white" : "border-gray-600"
-                  }`}
-                />
-              ))}
+          {parsedIssue.images?.length > 0 && (
+            <div className="mt-4">
+              <img
+                src={parsedIssue.images[activeImage]}
+                className="rounded-lg w-full"
+              />
+              <div className="flex gap-2 mt-2">
+                {parsedIssue.images.map((img, i) => (
+                  <img
+                    key={i}
+                    src={img}
+                    onClick={() => setActiveImage(i)}
+                    className={`h-16 w-20 cursor-pointer border ${
+                      i === activeImage ? "border-white" : "border-gray-600"
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-  
+          )}
         </motion.div>
 
         {/* TENDER FORM */}
@@ -177,9 +180,16 @@ export const MakeTender = () => {
               { label: "Category", name: "category", type: "text" },
               { label: "Min Bid Amount", name: "minBidAmount", type: "number" },
               { label: "Max Bid Amount", name: "maxBidAmount", type: "number" },
-              { label: "Bid Opening Date", name: "bidOpeningDate", type: "date" },
-              { label: "Bid Closing Date", name: "bidClosingDate", type: "date" },
-              { label: "Work Location", name: "location", type: "text" },
+              {
+                label: "Bid Opening Date",
+                name: "bidOpeningDate",
+                type: "date",
+              },
+              {
+                label: "Bid Closing Date",
+                name: "bidClosingDate",
+                type: "date",
+              },
             ].map(({ label, name, type }) => (
               <div key={name}>
                 <label className="block text-gray-300 font-semibold mb-2">
@@ -205,6 +215,31 @@ export const MakeTender = () => {
                 )}
               </div>
             ))}
+            <div>
+              <label className="block text-gray-300 font-semibold mb-2">
+                Work Location
+              </label>
+
+              <input
+                type="text"
+                readOnly
+                value={parsedIssue?.location?.placeName || ""}
+                className="
+      w-full
+      bg-[#0f1224]
+      border
+      border-gray-700
+      p-3
+      rounded-xl
+      text-gray-400
+      cursor-not-allowed
+    "
+              />
+
+              <p className="text-xs text-gray-500 mt-1">
+                Location is automatically inherited from the issue.
+              </p>
+            </div>
 
             {/* ATTACH DOCUMENTS */}
             <div>
@@ -246,64 +281,62 @@ export const MakeTender = () => {
   );
 };
 
+// try {
+//   if (typeof window.ethereum === "undefined") {
+//     throw new Error("Metamask is not installed.");
+//   }
 
+//   const TenderABI = Tender.abi;
+//   await window.ethereum.request({ method: "eth_requestAccounts" });
 
- // try {
-    //   if (typeof window.ethereum === "undefined") {
-    //     throw new Error("Metamask is not installed.");
-    //   }
+//   const provider = new BrowserProvider(window.ethereum);
+//   const signer = await provider.getSigner();
+//   const contract = new Contract(contractAddress, TenderABI, signer);
 
-    //   const TenderABI = Tender.abi;
-    //   await window.ethereum.request({ method: "eth_requestAccounts" });
+//   const deadline = Math.floor(
+//     new Date(formData.bidClosingDate).getTime() / 1000,
+//   );
+//   const starting = Math.floor(
+//     new Date(formData.bidOpeningDate).getTime() / 1000,
+//   );
 
-    //   const provider = new BrowserProvider(window.ethereum);
-    //   const signer = await provider.getSigner();
-    //   const contract = new Contract(contractAddress, TenderABI, signer);
+//   const tx = await contract.createTender(
+//     formData.title,
+//     formData.description,
+//     formData.category,
+//     formData.minBidAmount,
+//     formData.maxBidAmount,
+//     starting,
+//     deadline,
+//     formData.location,
+//     creator?.id,
+//   );
 
-    //   const deadline = Math.floor(
-    //     new Date(formData.bidClosingDate).getTime() / 1000,
-    //   );
-    //   const starting = Math.floor(
-    //     new Date(formData.bidOpeningDate).getTime() / 1000,
-    //   );
+//   await tx.wait();
+//   console.log(" Tender successfully created on Blockchain");
 
-    //   const tx = await contract.createTender(
-    //     formData.title,
-    //     formData.description,
-    //     formData.category,
-    //     formData.minBidAmount,
-    //     formData.maxBidAmount,
-    //     starting,
-    //     deadline,
-    //     formData.location,
-    //     creator?.id,
-    //   );
+//   // const receipt = await tx.wait();
+//   // console.log(receipt)
 
-    //   await tx.wait();
-    //   console.log(" Tender successfully created on Blockchain");
+//   // // const transactionHash = receipt.transactionHash;
+//   // let tempTenderId = "";
 
-    //   // const receipt = await tx.wait();
-    //   // console.log(receipt)
+//   // for (const log of receipt.logs) {
+//   //   try {
+//   //     const parsedLog = contract.interface.parseLog(log);
+//   //     if (parsedLog.name === "TenderCreated") {
+//   //       tempTenderId = parsedLog.args[0].toString();
+//   //       break;
+//   //     }
+//   //   } catch (error) {
+//   //     continue;
+//   //   }
+//   // }
 
-    //   // // const transactionHash = receipt.transactionHash;
-    //   // let tempTenderId = "";
+//   // if (!tempTenderId) {
+//   //   throw new Error("Tender ID not found in blockchain event logs");
+//   // }
 
-    //   // for (const log of receipt.logs) {
-    //   //   try {
-    //   //     const parsedLog = contract.interface.parseLog(log);
-    //   //     if (parsedLog.name === "TenderCreated") {
-    //   //       tempTenderId = parsedLog.args[0].toString();
-    //   //       break;
-    //   //     }
-    //   //   } catch (error) {
-    //   //     continue;
-    //   //   }
-    //   // }
+//   // console.log(tempTenderId)
 
-    //   // if (!tempTenderId) {
-    //   //   throw new Error("Tender ID not found in blockchain event logs");
-    //   // }
-
-    //   // console.log(tempTenderId)
-
-    //   // setBlockchainTenderId(tempTenderId);
+//   // setBlockchainTenderId(tempTenderId);

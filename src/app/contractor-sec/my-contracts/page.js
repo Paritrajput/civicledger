@@ -13,18 +13,9 @@ export default function ContractsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setError("Unauthorized");
-      setLoading(false);
-      return;
-    }
-
     const fetchContracts = async () => {
       try {
-        const res = await axios.get("/api/contracts/contractor-contracts", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await axios.get("/api/contracts/contractor-contracts");
         setContracts(res.data || []);
       } catch (err) {
         console.error(err);
@@ -55,9 +46,7 @@ export default function ContractsPage() {
         ) : error ? (
           <p className="text-red-400 text-center">{error}</p>
         ) : contracts.length === 0 ? (
-          <p className="text-gray-400 text-center">
-            No contracts assigned yet
-          </p>
+          <p className="text-gray-400 text-center">No contracts assigned yet</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {contracts.map((contract) => (
@@ -65,8 +54,9 @@ export default function ContractsPage() {
                 key={contract._id}
                 contract={contract}
                 onClick={() =>
-               router.push(`/contractor-sec/contract-desc?contractId=${contract._id}`)
-
+                  router.push(
+                    `/contractor-sec/contract-desc?contractId=${contract._id}`,
+                  )
                 }
               />
             ))}
@@ -85,9 +75,15 @@ function ContractCard({ contract, onClick }) {
       case "DRAFT":
         return { text: "Milestones not created yet", color: "text-yellow-400" };
       case "CONTRACTOR_REVIEW":
-        return { text: "Action required: Review milestones", color: "text-orange-400" };
+        return {
+          text: "Action required: Review milestones",
+          color: "text-orange-400",
+        };
       case "CONTRACTOR_PROPOSED":
-        return { text: "Waiting for government review", color: "text-blue-400" };
+        return {
+          text: "Waiting for government review",
+          color: "text-blue-400",
+        };
       case "GOV_REVIEW":
         return { text: "Government reviewing changes", color: "text-blue-400" };
       case "FINALIZED":
@@ -97,8 +93,7 @@ function ContractCard({ contract, onClick }) {
     }
   })();
 
-  const remaining =
-    (contract.contractValue || 0) - (contract.paidAmount || 0);
+  const remaining = (contract.contractValue || 0) - (contract.paidAmount || 0);
 
   return (
     <motion.div
@@ -114,8 +109,7 @@ function ContractCard({ contract, onClick }) {
         <p>Contract Value: ₹{contract.contractValue}</p>
         <p>Paid: ₹{contract.paidAmount}</p>
         <p>
-          Remaining:{" "}
-          <span className="font-medium">₹{remaining}</span>
+          Remaining: <span className="font-medium">₹{remaining}</span>
         </p>
       </div>
 
@@ -123,9 +117,7 @@ function ContractCard({ contract, onClick }) {
         {milestoneStatusLabel.text}
       </p>
 
-      <p className="text-xs text-gray-400 mt-2">
-        Status: {contract.status}
-      </p>
+      <p className="text-xs text-gray-400 mt-2">Status: {contract.status}</p>
 
       <motion.div
         whileHover={{ scale: 1.03 }}

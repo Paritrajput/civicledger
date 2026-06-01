@@ -3,7 +3,6 @@ import { createContext, useState, useContext } from "react";
 import React from "react";
 
 import { useEffect } from "react";
-import { jwtDecode } from "jwt-decode";
 
 const GovContext = createContext();
 
@@ -15,25 +14,32 @@ export const GovProvider = ({ children }) => {
   const [showPopup, setShowPopup] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const syncUser = () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setUser(null);
-        return;
-      }
-      const decoded = jwtDecode(token);
-      setUser(decoded);
-    } catch (err) {
-      console.error("Token decode error:", err);
+const syncUser = async () => {
+  try {
+    const res = await fetch("/api/auth/me");
+
+    if (!res.ok) {
       setUser(null);
+      return;
     }
+
+    const data = await res.json();
+
+    setUser(data.user);
+  } catch (err) {
+    console.error("User sync error:", err);
+    setUser(null);
+  }
+};
+
+useEffect(() => {
+  const initialize = async () => {
+    await syncUser();
+    setLoading(false);
   };
 
-  useEffect(() => {
-    syncUser();
-    setLoading(false);
-  }, []);
+  initialize();
+}, []);
 
   return (
     <GovContext.Provider
@@ -42,7 +48,7 @@ export const GovProvider = ({ children }) => {
         setShowPopup,
         user,
         setUser,
-        syncUser,        // 👈 ADD THIS
+        syncUser,       
         govProfile,
         setGovProfile,
         isOwner,

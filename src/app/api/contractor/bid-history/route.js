@@ -1,20 +1,22 @@
+import { getUserFromRequest } from "@/lib/auth";
 import { dbConnect } from "@/lib/dbConnect";
 import Bid from "@/Models/Bid";
-import Tender from "@/Models/Tender";
 
-export async function POST(req) {
+
+export async function GET(req) {
   await dbConnect();
 
   try {
-    const { contractorId } = await req.json();
+    const user = await getUserFromRequest(req);
+
+    const contractorId = user.id;
 
     if (!contractorId) {
       return new Response(
         JSON.stringify({ error: "Contractor ID is required" }),
-        { status: 400 }
+        { status: 400 },
       );
     }
-
 
     const bids = await Bid.find({ contractorId })
       .populate({
@@ -23,30 +25,26 @@ export async function POST(req) {
       })
       .sort({ createdAt: -1 });
 
-    const response = bids.map((bid) => ({
-      _id: bid._id,
+const response = bids.map((bid) => ({
+  _id: bid._id,
 
-   
-      tenderId: bid.tenderId?._id,
-      tenderTitle: bid.tenderId?.title,
-      tenderDescription: bid.tenderId?.description,
-      tenderLocation: bid.tenderId?.location,
+  tenderId: bid.tenderId?._id,
+  tenderTitle: bid.tenderId?.title,
+  tenderDescription: bid.tenderId?.description,
 
+  bidAmount: bid.bidAmount,
+  experience: bid.experience,
 
-      bidAmount: bid.bidAmount,
-      experience: bid.experience,
-      documentsSubmitted: bid.documents?.length || 0,
+  proposalDocument: bid.proposalDocument,
 
-      
-      status: bid.status || "PENDING", // WON | LOST | REJECTED | PENDING
-      selectionType: bid.selectionType || "SYSTEM",
-      systemScore: bid.systemScore,
-      rank: bid.rank,
+  status: bid.status || "PENDING",
+  selectionType: bid.selectionType || "SYSTEM",
+  systemScore: bid.systemScore,
+  rank: bid.rank,
 
-     
-      createdAt: bid.createdAt,
-      evaluatedAt: bid.evaluatedAt,
-    }));
+  createdAt: bid.createdAt,
+  evaluatedAt: bid.evaluatedAt,
+}));
 
     return new Response(JSON.stringify(response), { status: 200 });
   } catch (error) {
@@ -54,7 +52,7 @@ export async function POST(req) {
 
     return new Response(
       JSON.stringify({ error: "Failed to fetch bid history" }),
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

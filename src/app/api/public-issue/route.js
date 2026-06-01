@@ -13,19 +13,16 @@ cloudinary.v2.config({
   api_secret: "iJfGZ2TqF348thygERO5RzVgjpM",
 });
 
-
-
 export async function POST(req) {
   try {
     await dbConnect();
 
-
-    const user = getUserFromRequest(req);
+    const user = await getUserFromRequest(req);
 
     if (!user || user.role !== "public") {
       return NextResponse.json(
         { error: "Only public users can raise issues" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -39,7 +36,7 @@ export async function POST(req) {
     if (!body.issue_type || !body.description || !body.location) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -59,7 +56,7 @@ export async function POST(req) {
     } catch {
       return NextResponse.json(
         { error: "Invalid location format" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -69,11 +66,10 @@ export async function POST(req) {
       const buffer = Buffer.from(await body.image.arrayBuffer());
       const uploadRes = await cloudinary.v2.uploader.upload(
         `data:${body.image.type};base64,${buffer.toString("base64")}`,
-        { folder: "contracker/issues" }
+        { folder: "contracker/issues" },
       );
       images.push(uploadRes.secure_url);
     }
-
 
     const issue = await Issue.create({
       reportedBy: new mongoose.Types.ObjectId(user.id),
@@ -96,17 +92,16 @@ export async function POST(req) {
 
     return NextResponse.json(
       { message: "Issue submitted successfully", issue },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Issue creation error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
 
 export async function GET() {
   try {
@@ -120,7 +115,7 @@ export async function GET() {
   } catch {
     return NextResponse.json(
       { error: "Failed to fetch issues" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

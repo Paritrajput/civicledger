@@ -16,8 +16,6 @@ export default function Page() {
 }
 
 export const MakeTender = () => {
-
-
   const [creator, setCreator] = useState(null);
   const { user } = useGovUser();
 
@@ -32,7 +30,6 @@ export const MakeTender = () => {
     location: "",
   });
   const [documents, setDocuments] = useState([]);
-
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -85,56 +82,41 @@ export const MakeTender = () => {
     //   await tx.wait();
     //   console.log(" Tender successfully created on Blockchain");
 
-      // Store in MongoDB
-          const token = localStorage.getItem("token");
-         
-      if (!token) {
-        throw new Error("Authentication required to create tender");
-      }
-   try {
-    const token = localStorage.getItem("token");
-    if (!token) throw new Error("Authentication required");
+    try {
+      const fd = new FormData();
 
-    const fd = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        fd.append(key, value);
+      });
 
-    Object.entries(formData).forEach(([key, value]) => {
-      fd.append(key, value);
-    });
+      documents.forEach((doc) => {
+        fd.append("documents", doc);
+      });
 
+      const res = await fetch("/api/tender/create-tender", {
+        method: "POST",
+        body: fd,
+      });
 
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
 
-    documents.forEach((doc) => {
-      fd.append("documents", doc);
-    });
-
-    const res = await fetch("/api/tender/create-tender", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: fd,
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-
-    alert("Tender created successfully");
-    setFormData({
-      title: "",
-      description: "",
-      category: "",
-      minBidAmount: "",
-      maxBidAmount: "",
-      bidOpeningDate: "",
-      bidClosingDate: "",
-      location: "",
-    });
-  } catch (err) {
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-
+      alert("Tender created successfully");
+      setFormData({
+        title: "",
+        description: "",
+        category: "",
+        minBidAmount: "",
+        maxBidAmount: "",
+        bidOpeningDate: "",
+        bidClosingDate: "",
+        location: "",
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -145,7 +127,6 @@ export const MakeTender = () => {
     }));
   };
 
-  
   return (
     <div className="relative min-h-screen text-white">
       <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
@@ -239,27 +220,26 @@ export const MakeTender = () => {
               </motion.div>
             ))}
             <div className="mt-2">
-  <label className="block font-semibold text-gray-300 mb-2">
-    Attach Documents (PDF / DOC)
-  </label>
+              <label className="block font-semibold text-gray-300 mb-2">
+                Attach Documents (PDF / DOC)
+              </label>
 
-  <input
-    type="file"
-    multiple
-    accept=".pdf,.doc,.docx"
-    onChange={(e) => setDocuments(Array.from(e.target.files))}
-    className="w-full border border-gray-700 bg-[#0f1224] p-3 rounded-xl text-white file:bg-white file:text-black file:rounded-lg file:px-3 file:py-1 file:border-0"
-  />
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx"
+                onChange={(e) => setDocuments(Array.from(e.target.files))}
+                className="w-full border border-gray-700 bg-[#0f1224] p-3 rounded-xl text-white file:bg-white file:text-black file:rounded-lg file:px-3 file:py-1 file:border-0"
+              />
 
-  {documents.length > 0 && (
-    <ul className="text-sm text-gray-400 mt-2 list-disc ml-5">
-      {documents.map((doc, i) => (
-        <li key={i}>{doc.name}</li>
-      ))}
-    </ul>
-  )}
-</div>
-
+              {documents.length > 0 && (
+                <ul className="text-sm text-gray-400 mt-2 list-disc ml-5">
+                  {documents.map((doc, i) => (
+                    <li key={i}>{doc.name}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
             <motion.button
               whileHover={{ scale: 1.02 }}

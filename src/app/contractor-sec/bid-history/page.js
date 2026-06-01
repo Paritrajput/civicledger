@@ -18,7 +18,7 @@ export default function BidHistory() {
 
     const fetchBidHistory = async () => {
       try {
-        const res = await axios.post("/api/contractor/bid-history", {
+        const res = await axios.get("/api/contractor/bid-history", {
           contractorId,
         });
 
@@ -32,6 +32,11 @@ export default function BidHistory() {
 
     fetchBidHistory();
   }, [contractorId]);
+  useEffect(() => {
+    if (!userLoading && !user) {
+      setLoading(false);
+    }
+  }, [userLoading, user]);
 
   if (userLoading) {
     return <CenteredText text="Checking session..." />;
@@ -39,7 +44,6 @@ export default function BidHistory() {
 
   return (
     <div className="relative min-h-screen text-white">
-  
       <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
 
       <div className="relative max-w-7xl mx-auto p-4 md:p-6 space-y-10">
@@ -48,7 +52,13 @@ export default function BidHistory() {
         {loading ? (
           <CenteredText text="Loading your bid history…" />
         ) : bids.length === 0 ? (
-          <CenteredText text="You haven’t placed any bids yet." />
+          <div className="text-center py-20">
+            <h3 className="text-xl font-semibold">No Bids Found</h3>
+
+            <p className="text-gray-400 mt-2">
+              You haven't participated in any tenders yet.
+            </p>
+          </div>
         ) : (
           <BidGrid bids={bids} />
         )}
@@ -56,7 +66,6 @@ export default function BidHistory() {
     </div>
   );
 }
-
 
 function Header() {
   return (
@@ -89,7 +98,6 @@ function BidCard({ bid, index }) {
       whileHover={{ y: -4 }}
       className="bg-[#14162d8a] backdrop-blur-xl p-6 rounded-2xl border border-gray-800 hover:border-gray-600 transition space-y-4"
     >
-  
       <div>
         <h2 className="text-lg font-semibold line-clamp-1">
           {bid.tenderTitle || "Untitled Tender"}
@@ -99,51 +107,60 @@ function BidCard({ bid, index }) {
         </p>
       </div>
 
-  
       <div className="text-sm space-y-1">
         <Info label="Bid Amount" value={`₹${bid.bidAmount}`} />
         <Info label="Experience" value={`${bid.experience || 0} yrs`} />
-        <Info
-          label="Documents"
-          value={`${bid.documentsSubmitted || 0} files`}
-        />
+        <div className="flex justify-between items-center">
+  <span className="text-gray-400">
+    Proposal Document:
+  </span>
+
+  {bid.proposalDocument ? (
+    <a
+      href={bid.proposalDocument}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="
+        px-3 py-1
+        rounded-lg
+        bg-blue-600
+        hover:bg-blue-700
+        text-white
+        text-xs
+        font-medium
+      "
+    >
+      View Document
+    </a>
+  ) : (
+    <span>No Document</span>
+  )}
+</div>
       </div>
 
-
       <div className="bg-[#0f1224] border border-gray-700 rounded-xl p-3 text-sm space-y-1">
-        <Info
-          label="Status"
-          value={<StatusBadge status={bid.status} />}
-        />
-        <Info
-          label="Selection"
-          value={bid.selectionType || "—"}
-        />
+        <Info label="Status" value={<StatusBadge status={bid.status} />} />
+        <Info label="Selection" value={bid.selectionType || "—"} />
         {bid.systemScore !== undefined && (
           <Info label="System Score" value={bid.systemScore} />
         )}
-        {bid.rank && <Info label="Rank" value={`#${bid.rank}`} />}
+        {bid.rank !== undefined && bid.rank !== null && (
+          <Info label="Rank" value={`#${bid.rank}`} />
+        )}
       </div>
-
 
       <div className="text-xs text-gray-400">
         <p>
           Submitted:{" "}
-          {bid.createdAt
-            ? new Date(bid.createdAt).toLocaleString()
-            : "—"}
+          {bid.createdAt ? new Date(bid.createdAt).toLocaleString() : "—"}
         </p>
         {bid.evaluatedAt && (
-          <p>
-            Evaluated:{" "}
-            {new Date(bid.evaluatedAt).toLocaleString()}
-          </p>
+          <p>Evaluated: {new Date(bid.evaluatedAt).toLocaleString()}</p>
         )}
       </div>
     </motion.div>
   );
 }
-
 
 function Info({ label, value }) {
   return (
@@ -174,9 +191,5 @@ function StatusBadge({ status }) {
 }
 
 function CenteredText({ text }) {
-  return (
-    <div className="text-center text-gray-400 py-20">
-      {text}
-    </div>
-  );
+  return <div className="text-center text-gray-400 py-20">{text}</div>;
 }

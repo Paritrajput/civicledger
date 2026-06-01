@@ -18,6 +18,7 @@ const TenderSchema = new mongoose.Schema(
       placeName: String,
     },
 
+
     source: {
       type: String,
       enum: ["ISSUE", "DIRECT"],
@@ -47,10 +48,10 @@ const TenderSchema = new mongoose.Schema(
       index: true,
     },
 
-  attachments: {
-    type: [mongoose.Schema.Types.Mixed],
-    default: [],
-  },
+    attachments: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: [],
+    },
     blockchain: {
       tenderId: String,
       transactionHash: String,
@@ -63,6 +64,4 @@ const TenderSchema = new mongoose.Schema(
 TenderSchema.index({ bidClosingDate: 1 });
 TenderSchema.index({ source: 1 });
 
-
-export default mongoose.models.Tender ||
-  mongoose.model("Tender", TenderSchema);
+export default mongoose.models.Tender || mongoose.model("Tender", TenderSchema);

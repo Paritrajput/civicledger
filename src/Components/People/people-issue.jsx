@@ -25,7 +25,7 @@ const PeopleIssue = () => {
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
 
-const {warning, success, error}= useNotification();
+  const { warning, success, error } = useNotification();
 
   function LocationMarker() {
     useMapEvents({
@@ -52,13 +52,9 @@ const {warning, success, error}= useNotification();
     return null;
   }
 
-
-
   async function fetchPlaceName(lat, lng) {
     try {
-      const res = await fetch(
-        `/api/geocode/reverse?lat=${lat}&lon=${lng}`
-      );
+      const res = await fetch(`/api/geocode/reverse?lat=${lat}&lon=${lng}`);
       const data = await res.json();
       setPlaceName(data.display_name || "Selected Location");
     } catch (err) {
@@ -67,29 +63,26 @@ const {warning, success, error}= useNotification();
     }
   }
 
-const handleSearchChange = async (e) => {
-  const query = e.target.value;
-  setSearchLocation(query);
+  const handleSearchChange = async (e) => {
+    const query = e.target.value;
+    setSearchLocation(query);
 
-  if (query.length < 3) {
-    setSuggestions([]);
-    return;
-  }
+    if (query.length < 3) {
+      setSuggestions([]);
+      return;
+    }
 
-  try {
-    const res = await fetch(`/api/geocode/search?q=${query}`);
-    const data = await res.json();
+    try {
+      const res = await fetch(`/api/geocode/search?q=${query}`);
+      const data = await res.json();
 
-    console.log("Geocode suggestions:", data); // 🔍 DEBUG
+      console.log("Geocode suggestions:", data); // 🔍 DEBUG
 
-    setSuggestions(Array.isArray(data) ? data : []);
-  } catch (err) {
-    setSuggestions([]);
-  }
-};
-
-
-
+      setSuggestions(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setSuggestions([]);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -104,13 +97,12 @@ const handleSearchChange = async (e) => {
       return;
     }
 
+    // const token = localStorage.getItem("token");
 
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      warning("Authentication required");
-      return;
-    }
+    // if (!token) {
+    //   warning("Authentication required");
+    //   return;
+    // }
 
     setLoading(true);
 
@@ -125,12 +117,7 @@ const handleSearchChange = async (e) => {
         formData.append("image", issueImg);
       }
 
-      await axios.post("/api/public-issue", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await axios.post("/api/public-issue", formData);
 
       success("Issue submitted successfully!");
 
@@ -147,8 +134,6 @@ const handleSearchChange = async (e) => {
       setLoading(false);
     }
   };
-
-
 
   return (
     <ProtectedRoute>
@@ -189,28 +174,27 @@ const handleSearchChange = async (e) => {
               className="w-full px-4 py-3 rounded-xl bg-[#0f1224] border border-gray-700"
             />
 
-{suggestions.length > 0 && (
-  <ul className="absolute z-20 bg-[#0f1224] border border-gray-700 rounded-xl mt-2 w-full max-h-64 overflow-auto z-50">
-    {suggestions.map((place, i) => (
-      <li
-        key={i}
-        className="p-3 hover:bg-[#1a1d3a] cursor-pointer"
-        onClick={() => {
-          setSuggestions([]);
-          setSearchLocation(place.display_name);
-          setPlaceName(place.display_name);
-          setPosition({
-            lat: parseFloat(place.lat),
-            lng: parseFloat(place.lon),
-          });
-        }}
-      >
-        {place.display_name}
-      </li>
-    ))}
-  </ul>
-)}
-
+            {suggestions.length > 0 && (
+              <ul className="absolute z-20 bg-[#0f1224] border border-gray-700 rounded-xl mt-2 w-full max-h-64 overflow-auto z-50">
+                {suggestions.map((place, i) => (
+                  <li
+                    key={i}
+                    className="p-3 hover:bg-[#1a1d3a] cursor-pointer"
+                    onClick={() => {
+                      setSuggestions([]);
+                      setSearchLocation(place.display_name);
+                      setPlaceName(place.display_name);
+                      setPosition({
+                        lat: parseFloat(place.lat),
+                        lng: parseFloat(place.lon),
+                      });
+                    }}
+                  >
+                    {place.display_name}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {/* Map */}
@@ -227,8 +211,8 @@ const handleSearchChange = async (e) => {
           </div>
 
           <p className="text-sm text-gray-400">
-            📍 {placeName || "Select a location"} (
-            {position.lat.toFixed(4)}, {position.lng.toFixed(4)})
+            📍 {placeName || "Select a location"} ({position.lat.toFixed(4)},{" "}
+            {position.lng.toFixed(4)})
           </p>
 
           <input
@@ -244,9 +228,7 @@ const handleSearchChange = async (e) => {
             type="submit"
             disabled={loading}
             className={`w-full px-4 py-3 rounded-xl font-semibold ${
-              loading
-                ? "bg-gray-700 cursor-not-allowed"
-                : "bg-white text-black"
+              loading ? "bg-gray-700 cursor-not-allowed" : "bg-white text-black"
             }`}
           >
             {loading ? "Submitting..." : "Submit Issue"}

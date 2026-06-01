@@ -31,5 +31,18 @@ export async function POST(req) {
     }
   );
 
-  return NextResponse.json({ success: true, token });
+  const response = NextResponse.json({
+    success: true,
+    token, 
+  });
+
+  response.cookies.set("token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 2,
+  });
+
+  return response;
 }

@@ -18,8 +18,7 @@ const BidForm = () => {
   const [proposalFile, setProposalFile] = useState(null);
 
   const [loading, setLoading] = useState(false);
-  const {error, success, warning} = useNotification();
- 
+  const { error, success, warning } = useNotification();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,12 +31,6 @@ const BidForm = () => {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        warning("Authentication required");
-        return;
-      }
-
       const formData = new FormData();
       formData.append("tenderId", tenderId);
       formData.append("blockchainTenderId", blockchainTenderId);
@@ -48,9 +41,6 @@ const BidForm = () => {
 
       const res = await fetch("/api/bidding", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
         body: formData,
       });
 
@@ -72,7 +62,6 @@ const BidForm = () => {
 
   return (
     <div className="relative min-h-screen text-white">
-  
       <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
 
       <div className="relative flex justify-center p-4 md:p-6">
@@ -86,7 +75,6 @@ const BidForm = () => {
           </h1>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-        
             <div>
               <label className="block text-sm text-gray-300 mb-1">
                 Bid Amount (₹)
@@ -101,7 +89,6 @@ const BidForm = () => {
               />
             </div>
 
-          
             <div>
               <label className="block text-sm text-gray-300 mb-1">
                 Estimated Completion Time
@@ -116,7 +103,6 @@ const BidForm = () => {
               />
             </div>
 
-          
             <div>
               <label className="block text-sm text-gray-300 mb-1">
                 Technical Approach / Notes
@@ -130,7 +116,6 @@ const BidForm = () => {
               />
             </div>
 
-       
             <div>
               <label className="block text-sm text-gray-300 mb-1">
                 Proposal Document (PDF / DOC)
@@ -146,7 +131,6 @@ const BidForm = () => {
               />
             </div>
 
-       
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.95 }}

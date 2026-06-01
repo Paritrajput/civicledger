@@ -26,15 +26,8 @@ export default function ContractorLogin() {
     try {
       const res = await axios.post("/api/contractor/login", formData);
       if (res.data.success) {
-        localStorage.setItem("token", res.data.token);
-        const token = localStorage.getItem("token");
-        if (token) {
-          const decoded = jwtDecode(token);
-          setUser(decoded);
-          syncUser();
-          setLoading(false);
-          router.push("/contractor-sec");
-        }
+        await syncUser();
+        router.replace("/");
       }
     } catch (err) {
       setError(err.response?.data?.error || "Login failed");

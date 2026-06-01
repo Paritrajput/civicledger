@@ -8,15 +8,19 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function Profile() {
   const router = useRouter();
   const { showPopup, setShowPopup, user, setUser } = useGovUser();
-  const { data: session } = useSession();
+ 
 
   const handleLogout = async () => {
     try {
-      if (session) await signOut({ redirect: false });
-      localStorage.removeItem("token");
+      await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+
       setUser(null);
+
+      router.replace("/");
+
       setShowPopup(false);
-      router.push("/login");
     } catch (err) {
       console.error("Logout failed", err);
     }
@@ -42,7 +46,6 @@ export default function Profile() {
                        bg-[#14162d8a] backdrop-blur-xl 
                        border border-gray-800 shadow-2xl p-6"
           >
-      
             <button
               onClick={() => setShowPopup(false)}
               className="absolute top-3 right-3 text-gray-400 hover:text-white transition"
@@ -52,11 +55,12 @@ export default function Profile() {
 
             {user ? (
               <>
-          
                 <div className="text-center mb-6">
-                  <div className="mx-auto w-16 h-16 rounded-full 
+                  <div
+                    className="mx-auto w-16 h-16 rounded-full 
                                   bg-gradient-to-br from-teal-400 to-purple-500 
-                                  flex items-center justify-center text-2xl font-bold text-black">
+                                  flex items-center justify-center text-2xl font-bold text-black"
+                  >
                     {user.name?.charAt(0)?.toUpperCase()}
                   </div>
 
@@ -65,23 +69,21 @@ export default function Profile() {
                   </p>
                   <p className="text-sm text-gray-400">{user.email}</p>
 
-                  <span className="inline-block mt-2 px-3 py-1 text-xs font-semibold 
-                                   rounded-full bg-teal-500/20 text-teal-300">
+                  <span
+                    className="inline-block mt-2 px-3 py-1 text-xs font-semibold 
+                                   rounded-full bg-teal-500/20 text-teal-300"
+                  >
                     {user.role}
                   </span>
                 </div>
 
-      
                 <div className="space-y-2 text-sm text-gray-300">
-                  {user.owner && (
-                    <InfoBadge label="Owner Access" />
-                  )}
+                  {user.owner && <InfoBadge label="Owner Access" />}
                   {user.superOwner && (
                     <InfoBadge label="Super Owner" highlight />
                   )}
                 </div>
 
-            
                 <button
                   onClick={handleLogout}
                   className="mt-6 w-full bg-red-500 hover:bg-red-600 
@@ -99,8 +101,6 @@ export default function Profile() {
     </AnimatePresence>
   );
 }
-
-
 
 function InfoBadge({ label, highlight }) {
   return (

@@ -1,66 +1,136 @@
-
-import Public from "@/Models/Public";
-import nodemailer from "nodemailer";
+import { NextResponse } from "next/server";
+import { dbConnect } from "@/lib/dbConnect";
+import PendingUser from "@/Models/PendingUser";
 import bcrypt from "bcryptjs";
+import nodemailer from "nodemailer";
 
 export async function POST(req) {
-  await dbConnect();
-  const { email } = await req.json();
+  try {
+    await dbConnect();
 
-  const user = await Public.findOne({ email });
-  if (!user) {
-    return new Response("User not found", { status: 404 });
-  }
+    const { email } = await req.json();
 
-  if (user.isVerified) {
-    return new Response("Email already verified", { status: 400 });
-  }
+    if (!email) {
+      return NextResponse.json(
+        { error: "Email is required" },
+        { status: 400 }
+      );
+    }
 
-  // cooldown (60 seconds)
-  if (
-    user.otpExpiry &&
-    user.otpExpiry.getTime() - Date.now() > 9 * 60 * 1000
-  ) {
-    return new Response(
-      JSON.stringify({ message: "Please wait before requesting again" }),
-      { status: 429 }
+    const pendingUser = await PendingUser.findOne({
+      email,
+    });
+
+    if (!pendingUser) {
+      return NextResponse.json(
+        {
+          error:
+            "Verification session expired. Please register again.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const COOLDOWN = 60 * 1000;
+
+    if (
+      pendingUser.lastOtpSentAt &&
+      Date.now() -
+        pendingUser.lastOtpSentAt.getTime() <
+        COOLDOWN
+    ) {
+      const remainingSeconds = Math.ceil(
+        (COOLDOWN -
+          (Date.now() -
+            pendingUser.lastOtpSentAt.getTime())) /
+          1000
+      );
+
+      return NextResponse.json(
+        {
+          error: `Please wait ${remainingSeconds} seconds before requesting another OTP.`,
+        },
+        { status: 429 }
+      );
+    }
+
+    const generatedOTP = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString();
+
+    pendingUser.emailOTP = await bcrypt.hash(
+      generatedOTP,
+      10
+    );
+
+    pendingUser.lastOtpSentAt = new Date();
+
+    pendingUser.expiresAt = new Date(
+      Date.now() + 10 * 60 * 1000
+    );
+
+    await pendingUser.save();
+
+    await sendOTP(email, generatedOTP);
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "OTP sent successfully",
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error(
+      "Resend OTP Error:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        error: "Failed to resend OTP",
+      },
+      { status: 500 }
     );
   }
-
-  let generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
-   user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); //10min
-   user.emailOTP = await bcrypt.hash(generatedOTP, 10);
-
-  await user.save();
-  await sendOTP(email, generatedOTP);
-
-  return NextResponse.json({ success: true, message: "OTP sent successfully" });
 }
 
 async function sendOTP(email, otp) {
-  try {
-    const transporter = nodemailer.createTransport({
-      service: "Gmail",
+  const transporter =
+    nodemailer.createTransport({
+      service: "gmail",
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
     });
 
-    const mailOptions = {
-      from: `"ConTracker" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "Your Email Verification OTP",
-      html: `
-      <h3>Email Verification</h3>
-      <p>Your OTP is:</p>
-      <h2>${otp}</h2>
-      <p>This OTP expires in 10 minutes.</p>
-      `,
-    };
+  await transporter.sendMail({
+    from: `"CivicLedger" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: "Email Verification OTP",
+    html: `
+      <div style="font-family:Arial,sans-serif">
+        <h2>Email Verification</h2>
 
-    await transporter.sendMail(mailOptions);
-  } catch (error) {
-    console.error("Error sending email:", error);
-  }
+        <p>Your OTP is:</p>
+
+        <h1 style="
+          letter-spacing:4px;
+          color:#2563eb;
+        ">
+          ${otp}
+        </h1>
+
+        <p>
+          This OTP expires in 10 minutes.
+        </p>
+
+        <p>
+          If you did not request this,
+          please ignore this email.
+        </p>
+      </div>
+    `,
+  });
 }
