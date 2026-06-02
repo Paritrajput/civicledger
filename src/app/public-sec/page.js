@@ -30,7 +30,7 @@ await fetch("/api/auth/logout", {
 // setUser(null);
 await syncUser();
 
-router.replace("/");
+window.location.href = "/"
   };
   return (
     <main className="min-h-screen bg-gray-900/50 text-white">

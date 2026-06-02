@@ -17,7 +17,7 @@ export default function ContractorHomePage() {
     // setUser(null);
     await syncUser();
 
-    router.replace("/");
+    window.location.href = "/"
   };
 
   return (

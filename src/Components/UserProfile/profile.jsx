@@ -14,10 +14,9 @@ export default function Profile() {
       await fetch("/api/auth/logout", {
         method: "POST",
       });
-      // setUser(null);
-      await syncUser();
-
-      router.replace("/");
+      setUser(null);
+      router.refresh();
+      window.location.href = "/";
 
       setShowPopup(false);
     } catch (err) {

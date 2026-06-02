@@ -16,7 +16,7 @@ await fetch("/api/auth/logout", {
 // setUser(null);
 await syncUser();
 
-router.replace("/");
+window.location.href = "/";
   };
 
   // console.log("user", user);
