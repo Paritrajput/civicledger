@@ -24,13 +24,13 @@ export default function HomePage() {
   console.log(user);
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-    });
+await fetch("/api/auth/logout", {
+  method: "POST",
+});
+// setUser(null);
+await syncUser();
 
-    setUser(null);
-
-    router.replace("/");
+router.replace("/");
   };
   return (
     <main className="min-h-screen bg-gray-900/50 text-white">

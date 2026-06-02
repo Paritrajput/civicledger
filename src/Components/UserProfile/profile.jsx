@@ -8,15 +8,14 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function Profile() {
   const router = useRouter();
   const { showPopup, setShowPopup, user, setUser } = useGovUser();
- 
 
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", {
         method: "POST",
       });
-
-      setUser(null);
+      // setUser(null);
+      await syncUser();
 
       router.replace("/");
 

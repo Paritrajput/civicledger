@@ -10,13 +10,13 @@ export default function GovHomePage() {
   const router = useRouter();
   const { user, setUser } = useGovUser();
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-    });
+await fetch("/api/auth/logout", {
+  method: "POST",
+});
+// setUser(null);
+await syncUser();
 
-    setUser(null);
-
-    router.replace("/");
+router.replace("/");
   };
 
   // console.log("user", user);

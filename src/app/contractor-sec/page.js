@@ -8,14 +8,14 @@ import { useRouter } from "next/navigation";
 
 export default function ContractorHomePage() {
   const router = useRouter();
-  const { user, setUser } = useGovUser();
+  const { user, setUser, syncUser } = useGovUser();
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", {
       method: "POST",
     });
-
-    setUser(null);
+    // setUser(null);
+    await syncUser();
 
     router.replace("/");
   };
