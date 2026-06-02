@@ -14,8 +14,6 @@ export default function OwnerLogin() {
   const [loading, setLoading] = useState(false);
   const { user, setUser, syncUser } = useGovUser();
 
-
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -28,18 +26,8 @@ export default function OwnerLogin() {
     try {
       const res = await axios.post("/api/gov-sec/owner-login", formData);
       if (res.data.success) {
-
         await syncUser();
-router.replace("/");
-        // localStorage.setItem("token", res.data.token);
-        // const token = localStorage.getItem("token");
-        // if (token) {
-        //   const decoded = jwtDecode(token);
-        //   setUser(decoded);
-        //   syncUser();
-        //   setLoading(false);
-        //   router.push("/gov-sec");
-        // }
+        window.location.href = "/";
       }
     } catch (err) {
       setError(err.response?.data?.error || "Login failed");
@@ -49,7 +37,6 @@ router.replace("/");
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-linear-to-t from-[#22043e] to-[#04070f] text-white px-4">
- 
       <motion.div
         initial={{ opacity: 0, y: 25 }}
         animate={{ opacity: 1, y: 0 }}

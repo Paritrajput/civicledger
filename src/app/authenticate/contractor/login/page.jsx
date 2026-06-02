@@ -27,7 +27,7 @@ export default function ContractorLogin() {
       const res = await axios.post("/api/contractor/login", formData);
       if (res.data.success) {
         await syncUser();
-        router.replace("/");
+        window.location.href = "/";
       }
     } catch (err) {
       setError(err.response?.data?.error || "Login failed");
@@ -53,9 +53,7 @@ export default function ContractorLogin() {
         </p>
 
         {error && (
-          <p className="text-red-400 text-sm text-center mb-4">
-            {error}
-          </p>
+          <p className="text-red-400 text-sm text-center mb-4">{error}</p>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">

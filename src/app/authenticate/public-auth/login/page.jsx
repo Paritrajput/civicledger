@@ -25,7 +25,7 @@ export default function PublicLogin() {
       const res = await axios.post("/api/public-sec/login", formData);
       if (res.data.success) {
         await syncUser();
-        router.replace("/");
+        window.location.href = "/";
       }
     } catch (err) {
       setError(err.response?.data?.error || "Login failed");

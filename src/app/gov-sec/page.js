@@ -13,10 +13,9 @@ export default function GovHomePage() {
 await fetch("/api/auth/logout", {
   method: "POST",
 });
-// setUser(null);
-await syncUser();
-
-window.location.href = "/";
+      setUser(null);
+      router.refresh();
+      window.location.href = "/";
   };
 
   // console.log("user", user);

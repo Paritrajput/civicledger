@@ -12,14 +12,11 @@ export default function AdminLogin() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { user, setUser,syncUser } = useGovUser();
-  
-
+  const { user, setUser, syncUser } = useGovUser();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,16 +27,7 @@ export default function AdminLogin() {
       const res = await axios.post("/api/gov-sec/login", formData);
       if (res.data.success) {
         await syncUser();
-router.replace("/");
-      //   localStorage.setItem("token", res.data.token);
-      //   const token = localStorage.getItem("token");
-      //   if (token) {
-      //     const decoded = jwtDecode(token);
-      //     setUser(decoded);
-      //     syncUser(); 
-      //     setLoading(false);
-      //     router.push("/gov-sec");
-      //   }
+        window.location.href = "/";
       }
     } catch (err) {
       setError(err.response?.data?.error || "Login failed");

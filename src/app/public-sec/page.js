@@ -27,10 +27,9 @@ export default function HomePage() {
 await fetch("/api/auth/logout", {
   method: "POST",
 });
-// setUser(null);
-await syncUser();
-
-window.location.href = "/"
+      setUser(null);
+      router.refresh();
+      window.location.href = "/";
   };
   return (
     <main className="min-h-screen bg-gray-900/50 text-white">
