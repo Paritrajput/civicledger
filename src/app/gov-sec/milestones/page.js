@@ -29,20 +29,35 @@ function MilestonePage() {
     dueDate: "",
     gracePeriodDays: "",
   });
-  const {error, success, warning}=useNotification();
+  const { error, success, warning } = useNotification();
 
   const status = contract?.milestonePlanStatus;
 
   const totalAmount = useMemo(
-    () =>
-      milestones.reduce((sum, m) => sum + Number(m.amount || 0), 0),
-    [milestones]
+    () => milestones.reduce((sum, m) => sum + Number(m.amount || 0), 0),
+    [milestones],
   );
 
-
   const addMilestone = () => {
+    if (!newMilestone.title || !newMilestone.amount || !newMilestone.dueDate) {
+      warning("Please fill in title, amount, and due date");
+      return;
+    }
+    if (
+      !newMilestone.gracePeriodDays ||
+      isNaN(Number(newMilestone.gracePeriodDays))
+    ) {
+      warning("Grace period must be a valid number");
+      return;
+    }
     setMilestones([...milestones, newMilestone]);
-    setNewMilestone({ title: "", description: "", amount: "", dueDate: "", gracePeriodDays: "" });
+    setNewMilestone({
+      title: "",
+      description: "",
+      amount: "",
+      dueDate: "",
+      gracePeriodDays: "",
+    });
   };
 
   const removeMilestone = (index) => {
@@ -74,13 +89,11 @@ function MilestonePage() {
     }
   };
 
-
   return (
     <div className="relative min-h-screen text-white">
       <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
 
       <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
-
         <motion.div
           initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
@@ -88,8 +101,7 @@ function MilestonePage() {
         >
           <h1 className="text-2xl font-bold">{contract.contractId}</h1>
           <p className="text-gray-300 mt-2">
-            Milestone Status:{" "}
-            <span className="font-semibold">{status}</span>
+            Milestone Status: <span className="font-semibold">{status}</span>
           </p>
           <p className="text-sm text-gray-400 mt-1">
             Contract Value: ₹{contract.contractValue}
@@ -126,11 +138,16 @@ function MilestonePage() {
                 }
                 className="input"
               />
-                            <input
-                type="date"
+              <input
+                type="number"
+                placeholder="Grace Period (days)"
+                min="0"
                 value={newMilestone.gracePeriodDays}
                 onChange={(e) =>
-                  setNewMilestone({ ...newMilestone, gracePeriodDays: e.target.value })
+                  setNewMilestone({
+                    ...newMilestone,
+                    gracePeriodDays: e.target.value,
+                  })
                 }
                 className="input"
               />
@@ -164,7 +181,9 @@ function MilestonePage() {
                   <p className="text-sm text-gray-400">
                     ₹{m.amount} • {new Date(m.dueDate).toLocaleDateString()}
                   </p>
-                  {/* <p className="text-sm text-gray-400">Grace Period:{m.gracePeriodDays}</p> */}
+                  <p className="text-sm text-gray-400">
+                    Grace Period: {m.gracePeriodDays} days
+                  </p>
                 </div>
                 <button
                   onClick={() => removeMilestone(i)}
@@ -175,9 +194,7 @@ function MilestonePage() {
               </div>
             ))}
 
-            <p className="text-sm text-gray-400">
-              Total: ₹{totalAmount}
-            </p>
+            <p className="text-sm text-gray-400">Total: ₹{totalAmount}</p>
 
             <motion.button
               whileHover={{ scale: 1.02 }}
@@ -190,12 +207,10 @@ function MilestonePage() {
           </div>
         )}
 
-  
         {["CONTRACTOR_REVIEW", "CONTRACTOR_PROPOSED"].includes(status) && (
           <InfoBox text="Waiting for contractor / review in progress" />
         )}
 
-    
         {status === "GOV_REVIEW" && (
           <motion.button
             whileHover={{ scale: 1.03 }}
@@ -206,7 +221,6 @@ function MilestonePage() {
           </motion.button>
         )}
 
-     
         {status === "FINALIZED" && (
           <InfoBox text="Milestones locked. Monitoring & payments active." />
         )}
@@ -214,8 +228,6 @@ function MilestonePage() {
     </div>
   );
 }
-
-
 
 function InfoBox({ text }) {
   return (

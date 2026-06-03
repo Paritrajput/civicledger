@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import axios from "axios";
 import { motion } from "framer-motion";
+import { useNotification } from "@/Context/NotificationContext";
 
 export default function OwnerDashboard() {
   const { id } = useParams(); // Get ownerId from URL
   const [adminRequest, setAdminRequest] = useState(null);
   const [adminDetails, setAdminDetails] = useState(null);
   const [formData, setFormData] = useState({ name: "", email: "" });
+  const { success } = useNotification();
   console.log(id);
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export default function OwnerDashboard() {
     try {
       const res = await axios.post("/api/admin", { ...formData, userId: id });
       setAdminRequest(res.data); // Update state with the newly created request
-      alert("Approval request sent successfully!");
+      success("Approval request sent successfully!");
     } catch (error) {
       console.error("Error sending request", error);
     }

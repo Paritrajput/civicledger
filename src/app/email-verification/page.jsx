@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { useNotification } from "@/Context/NotificationContext";
 
 function getCookie(name) {
   return document.cookie
@@ -59,6 +60,8 @@ export default function VerifyEmail() {
     }
   };
 
+  const { success, error } = useNotification();
+
   const verifyOTP = async () => {
     setLoading(true);
     const res = await fetch("/api/auth/verify-otp", {
@@ -70,10 +73,10 @@ export default function VerifyEmail() {
 
     if (res.ok) {
       document.cookie = "verify_email=; path=/; max-age=0";
-      alert("Email verified successfully");
+      success("Email verified successfully");
       router.push("/authenticate/public-auth/login");
     } else {
-      alert("Invalid OTP");
+      error("Invalid OTP");
     }
   };
 
@@ -113,9 +116,7 @@ export default function VerifyEmail() {
               type="text"
               maxLength={1}
               value={digit}
-              onChange={(e) =>
-                handleChange(e.target.value, index)
-              }
+              onChange={(e) => handleChange(e.target.value, index)}
               onKeyDown={(e) => handleKeyDown(e, index)}
               className="w-12 h-12 text-center text-lg font-semibold rounded-xl bg-[#0f1224] border border-gray-700 text-white focus:outline-none focus:border-gray-500 transition"
             />
@@ -136,10 +137,7 @@ export default function VerifyEmail() {
           {timer > 0 ? (
             <span>Resend OTP in {timer}s</span>
           ) : (
-            <button
-              onClick={resendOTP}
-              className="text-white underline"
-            >
+            <button onClick={resendOTP} className="text-white underline">
               Resend OTP
             </button>
           )}

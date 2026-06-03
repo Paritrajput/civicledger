@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useGovUser } from "@/Context/govUser";
+import { useNotification } from "@/Context/NotificationContext";
 import { motion } from "framer-motion";
 
 export default function Page() {
@@ -23,20 +24,26 @@ export const MakeTender = () => {
   const { user } = useGovUser();
 
   const [formData, setFormData] = useState({
-title: `Tender for ${parsedIssue.issue_type}`,
-description: parsedIssue.description,
+    title: `Tender for ${parsedIssue.issue_type}`,
+    description: parsedIssue.description,
     category: "",
     minBidAmount: "",
     maxBidAmount: "",
     bidOpeningDate: "",
     bidClosingDate: "",
-    location:{ lat: parsedIssue?.location.coordinates[1], lng: parsedIssue?.location.coordinates[0], placeName: parsedIssue?.location.placeName } || null,
+    location:
+      {
+        lat: parsedIssue?.location.coordinates[1],
+        lng: parsedIssue?.location.coordinates[0],
+        placeName: parsedIssue?.location.placeName,
+      } || null,
   });
 
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [activeImage, setActiveImage] = useState(0);
+  const { success: notifySuccess, error: notifyError } = useNotification();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -60,14 +67,14 @@ description: parsedIssue.description,
         }
       });
 
-     fd.append(
-  "location",
-  JSON.stringify({
-    lng: parsedIssue.location.coordinates[0],
-    lat: parsedIssue.location.coordinates[1],
-    placeName: parsedIssue.location.placeName,
-  })
-);
+      fd.append(
+        "location",
+        JSON.stringify({
+          lng: parsedIssue.location.coordinates[0],
+          lat: parsedIssue.location.coordinates[1],
+          placeName: parsedIssue.location.placeName,
+        }),
+      );
 
       if (parsedIssue?._id) {
         fd.append("issueId", parsedIssue._id);
@@ -85,7 +92,7 @@ description: parsedIssue.description,
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Tender creation failed");
 
-      alert("Tender created successfully");
+      notifySuccess("Tender created successfully");
 
       setFormData({
         title: "",
@@ -100,7 +107,7 @@ description: parsedIssue.description,
       setDocuments([]);
     } catch (err) {
       console.error("Tender Error:", err);
-      setError(err.message);
+      notifyError(err.message);
     } finally {
       setLoading(false);
     }

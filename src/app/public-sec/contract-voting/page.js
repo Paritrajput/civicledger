@@ -23,7 +23,7 @@ function PublicContractDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const { user } = useGovUser();
-  const { success, warning } = useNotification;
+  const { success, warning } = useNotification();
 
   /* ---------------- FETCH CONTRACT ---------------- */
   useEffect(() => {
@@ -56,7 +56,7 @@ function PublicContractDashboard() {
 
   const totalMilestones = contract.milestones.length;
   const completedMilestones = contract.milestones.filter(
-    (m) => m.status === "Paid"|| m.status === "Approved",
+    (m) => m.status === "Paid" || m.status === "Approved",
   ).length;
 
   const progress =
@@ -252,6 +252,7 @@ function MilestoneTimeline({ milestones, contractId, userId }) {
 }
 
 export function PublicVoteSection({ contractId, milestoneId, userId }) {
+  const { success, warning } = useNotification();
   const [comment, setComment] = useState("");
   const [vote, setVote] = useState("approve");
   const [image, setImage] = useState(null);
@@ -259,7 +260,7 @@ export function PublicVoteSection({ contractId, milestoneId, userId }) {
 
   const submitVote = async () => {
     if (!userId) {
-      alert("You must be logged in to vote");
+      warning("You must be logged in to vote");
       return;
     }
 
@@ -341,13 +342,14 @@ export function PublicVoteSection({ contractId, milestoneId, userId }) {
 }
 
 function PublicRating({ contractorId, contractId, userId }) {
+  const { success, warning } = useNotification();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const submitRating = async () => {
     if (!rating || rating < 1 || rating > 5) {
-      alert("Please select a rating between 1 and 5");
+      warning("Please select a rating between 1 and 5");
       return;
     }
 

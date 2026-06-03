@@ -4,6 +4,7 @@ import axios from "axios";
 import { useSearchParams, useRouter } from "next/navigation";
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { useNotification } from "@/Context/NotificationContext";
 
 export default function Page() {
   return (
@@ -26,6 +27,8 @@ function BidAuth() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const { success, error } = useNotification();
+
   useEffect(() => {
     const tenderParam = searchParams.get("tender");
     if (!tenderParam) return;
@@ -33,7 +36,7 @@ function BidAuth() {
     try {
       setTender(JSON.parse(decodeURIComponent(tenderParam)));
     } catch {
-      alert("Invalid tender data");
+      error("Invalid tender data");
     }
   }, [searchParams]);
 
@@ -93,10 +96,10 @@ function BidAuth() {
       });
 
       if (!res.ok) throw new Error();
-      alert("Winner approved & contract created");
+      success("Winner approved & contract created");
       router.refresh();
     } catch {
-      alert("Failed to approve bid");
+      error("Failed to approve bid");
     } finally {
       setIsSubmitting(false);
     }
@@ -167,10 +170,14 @@ function BidAuth() {
                     </h3>
                     <p className="text-xs text-gray-400">
                       Experience:{" "}
-                      {bid.contractorId?.experienceYears ?? bid.experienceYears}{" "}
+                      {bid.contractorId?.experienceYears ??
+                        bid.experienceYears ??
+                        0}{" "}
                       yrs • Rating:{" "}
-                      {bid.contractorId?.contractorRating ??
-                        bid.contractorRating}
+                      {bid.contractorId?.contractorRating?.average ??
+                        bid.contractorRating?.average ??
+                        0}
+                      ⭐
                     </p>
                   </div>
 

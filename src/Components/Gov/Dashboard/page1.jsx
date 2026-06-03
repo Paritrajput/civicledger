@@ -28,12 +28,14 @@ export default function Page1({ ownerId }) {
   //     console.error("Error approving admin request", error);
   //   }
   // };
+  const { success } = useNotification();
+
   const approveRequest = async (id) => {
     try {
-      const response=await axios.post(`/api/admin/${id}`, { ownerId });
-      console.log(response)
+      const response = await axios.post(`/api/admin/${id}`, { ownerId });
+      console.log(response);
       setAdminRequests(adminRequests.filter((req) => req._id !== id));
-      alert("Admin request approved!");
+      success("Admin request approved!");
     } catch (error) {
       console.error("Error approving admin", error);
     }

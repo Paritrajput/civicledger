@@ -12,6 +12,11 @@ export default function Page1() {
   const [userLocation, setUserLocation] = useState(null);
   const [all, setAll] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterLocation, setFilterLocation] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
   const router = useRouter();
 
   // Get user location
@@ -74,19 +79,36 @@ export default function Page1() {
   // Search filter
   const getDisplayedIssues = () => {
     const baseIssues = all ? issues2 : filteredIssues;
-    if (!searchQuery.trim()) return baseIssues;
+    const query = searchQuery.trim().toLowerCase();
+    const startDate = filterStartDate ? new Date(filterStartDate) : null;
+    const endDate = filterEndDate ? new Date(filterEndDate) : null;
 
-    return baseIssues.filter(
-      (issue) =>
-        issue.issue_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        issue.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        issue.placename?.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
+    return baseIssues.filter((issue) => {
+      const locationText =
+        issue.location?.placeName?.toLowerCase() ||
+        issue.placename?.toLowerCase() ||
+        "";
+
+      const matchesSearch =
+        !query ||
+        issue.issue_type?.toLowerCase().includes(query) ||
+        issue.description?.toLowerCase().includes(query) ||
+        locationText.includes(query);
+      const matchesLocation =
+        !filterLocation.trim() ||
+        locationText.includes(filterLocation.toLowerCase());
+      const matchesStatus = !filterStatus || issue.status === filterStatus;
+      const issueDate = issue.createdAt ? new Date(issue.createdAt) : null;
+      const matchesDate =
+        (!startDate || (issueDate && issueDate >= startDate)) &&
+        (!endDate || (issueDate && issueDate <= endDate));
+
+      return matchesSearch && matchesLocation && matchesStatus && matchesDate;
+    });
   };
 
   return (
     <div className="relative min-h-screen text-white">
-    
       <div className="fixed inset-0 -z-10 bg-linear-to-t from-[#22043e] to-[#04070f]" />
 
       <div className="relative p-4 md:p-6">
@@ -110,11 +132,10 @@ export default function Page1() {
           </motion.select>
         </div>
 
-    
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-8 space-y-4"
         >
           <input
             type="text"
@@ -123,6 +144,82 @@ export default function Page1() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-[#0f1224] text-white border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:border-gray-500 transition placeholder-gray-500"
           />
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowFilters((prev) => !prev)}
+              className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white hover:bg-white/20 transition"
+            >
+              {showFilters ? "Hide Filters" : "Apply Filters"}
+            </button>
+          </div>
+
+          {showFilters && (
+            <div className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-5">
+              <div className="grid gap-4 md:grid-cols-4">
+                <label className="block text-sm text-gray-300">
+                  Location
+                  <input
+                    type="text"
+                    value={filterLocation}
+                    onChange={(e) => setFilterLocation(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-gray-800 bg-[#0f1224] px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-gray-500"
+                  />
+                </label>
+                <label className="block text-sm text-gray-300">
+                  Status
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-gray-800 bg-[#0f1224] px-4 py-3 text-white focus:outline-none focus:border-gray-500"
+                  >
+                    <option value="">All statuses</option>
+                    <option value="PENDING_VALIDATION">
+                      Pending Validation
+                    </option>
+                    <option value="PUBLIC_VERIFIED">Public Verified</option>
+                    <option value="GOV_REJECTED">Gov Rejected</option>
+                    <option value="TENDER_CREATED">Tender Created</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="RESOLVED">Resolved</option>
+                  </select>
+                </label>
+                <label className="block text-sm text-gray-300">
+                  Start Date
+                  <input
+                    type="date"
+                    value={filterStartDate}
+                    onChange={(e) => setFilterStartDate(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-gray-800 bg-[#0f1224] px-4 py-3 text-white focus:outline-none focus:border-gray-500"
+                  />
+                </label>
+                <label className="block text-sm text-gray-300">
+                  End Date
+                  <input
+                    type="date"
+                    value={filterEndDate}
+                    onChange={(e) => setFilterEndDate(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-gray-800 bg-[#0f1224] px-4 py-3 text-white focus:outline-none focus:border-gray-500"
+                  />
+                </label>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterLocation("");
+                    setFilterStatus("");
+                    setFilterStartDate("");
+                    setFilterEndDate("");
+                  }}
+                  className="rounded-xl bg-white text-black px-4 py-3 font-semibold hover:bg-slate-200 transition"
+                >
+                  Reset All Filters
+                </button>
+              </div>
+            </div>
+          )}
         </motion.div>
 
         {/* Issues List */}
@@ -159,14 +256,15 @@ export default function Page1() {
 
                 <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-400 mt-3">
                   <span>
-                    <strong>Location:</strong> {issue.location.placeName}
+                    <strong>Location:</strong>{" "}
+                    {issue.location?.placeName || issue.placename || "N/A"}
                   </span>
                   <span>
-                    <strong>Date:</strong> {issue.createdAt
+                    <strong>Date:</strong>{" "}
+                    {issue.createdAt
                       ? new Date(issue.createdAt).toLocaleDateString()
                       : "N/A"}
                   </span>
-               
                 </div>
 
                 <motion.button

@@ -126,7 +126,7 @@ const PeopleVote = () => {
         status: data.status,
       }));
     } catch {
-      alert("Voting failed");
+      error("Voting failed");
     } finally {
       setIsVoting(false);
     }

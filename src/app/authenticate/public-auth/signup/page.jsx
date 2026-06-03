@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { motion } from "framer-motion";
+import { useNotification } from "@/Context/NotificationContext";
 
 export default function ContractorSignup() {
   const router = useRouter();
@@ -20,11 +21,13 @@ export default function ContractorSignup() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const { warning } = useNotification();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!emailRegex.test(formData.email)) {
-      alert("Please enter a valid email address");
+      warning("Please enter a valid email address");
       return;
     }
 
@@ -50,18 +53,14 @@ export default function ContractorSignup() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md bg-[#14162d8a] backdrop-blur-xl border border-gray-800 rounded-2xl shadow-xl p-8"
       >
-        <h2 className="text-2xl font-bold text-center mb-2">
-          Public Signup
-        </h2>
+        <h2 className="text-2xl font-bold text-center mb-2">Public Signup</h2>
 
         <p className="text-gray-400 text-sm text-center mb-6">
           Create your account to report and track public issues
         </p>
 
         {error && (
-          <p className="text-red-400 text-sm text-center mb-4">
-            {error}
-          </p>
+          <p className="text-red-400 text-sm text-center mb-4">{error}</p>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">

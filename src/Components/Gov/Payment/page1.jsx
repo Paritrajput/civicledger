@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { useNotification } from "@/Context/NotificationContext";
 
 const AdminPaymentPage = (contract) => {
+  const { success, error: notifyError } = useNotification();
   const contractData = contract.contract;
   const [loading, setLoading] = useState(true);
   const [requestedPayments, setRequestedPayments] = useState([]);
@@ -18,7 +20,7 @@ const AdminPaymentPage = (contract) => {
       if (data) {
         setRequestedPayments(data);
       } else {
-        alert("Error: " + data.message);
+        notifyError("Error: " + data.message);
       }
     } catch (error) {
       console.error("Payment fetch failed", error);
@@ -45,14 +47,14 @@ const AdminPaymentPage = (contract) => {
 
       const data = await res.json();
       if (res.ok) {
-        alert(`Payment ${action}d successfully!`);
+        success(`Payment ${action}d successfully!`);
         getPayments(); // Refresh the list
       } else {
-        alert(data.message || `Failed to ${action} payment`);
+        notifyError(data.message || `Failed to ${action} payment`);
       }
     } catch (error) {
       console.error(`Error ${action}ing payment:`, error);
-      alert("Something went wrong");
+      notifyError("Something went wrong");
     }
     setLoading(false);
   };

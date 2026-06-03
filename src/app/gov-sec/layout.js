@@ -1,15 +1,14 @@
 "use client";
 
 import { useGovUser } from "@/Context/govUser";
+import Loader from "@/Components/ui/Loader";
 
 export default function GovLayout({ children }) {
   const { loading } = useGovUser();
 
   if (loading) {
     return (
-      <div className="h-screen flex justify-center items-center">
-        Checking credentials...
-      </div>
+<Loader />
     );
   }
 

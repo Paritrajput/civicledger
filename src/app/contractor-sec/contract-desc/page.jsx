@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { useNotification } from "@/Context/NotificationContext";
 
 export default function ContractDesc() {
   const searchParams = useSearchParams();
@@ -17,6 +18,7 @@ export default function ContractDesc() {
   const [submitting, setSubmitting] = useState(false);
   const [activeMilestone, setActiveMilestone] = useState(null);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const { success, error, warning } = useNotification();
 
   const openSubmissionModal = (milestone) => {
     setActiveMilestone(milestone);
@@ -32,9 +34,10 @@ export default function ContractDesc() {
         const res = await fetch(`/api/contracts/${contractId}`);
         const data = await res.json();
         if (!res.ok) throw new Error();
+        console.log(data);
         setContract(data.contract);
       } catch {
-        alert("Failed to load contract");
+        error("Failed to load contract");
       } finally {
         setLoading(false);
       }
@@ -43,7 +46,7 @@ export default function ContractDesc() {
     fetchContract();
   }, [contractId]);
 
-  /* ---------------- ACTIONS ---------------- */
+  
 
   const acceptGovMilestones = async () => {
     setSubmitting(true);
@@ -54,10 +57,10 @@ export default function ContractDesc() {
         body: JSON.stringify({ contractId }),
       });
       if (!res.ok) throw new Error();
-      alert("Government milestones accepted");
+      success("Government milestones accepted");
       location.reload();
     } catch {
-      alert("Failed to accept milestones");
+      error("Failed to accept milestones");
     } finally {
       setSubmitting(false);
     }
@@ -65,7 +68,7 @@ export default function ContractDesc() {
 
   const submitCounterProposal = async () => {
     if (!counterReason || counterMilestones.length === 0) {
-      alert("Add milestones and reason");
+      warning("Add milestones and reason");
       return;
     }
 
@@ -81,16 +84,16 @@ export default function ContractDesc() {
         }),
       });
       if (!res.ok) throw new Error();
-      alert("Counter proposal submitted");
+      success("Counter proposal submitted");
       location.reload();
     } catch {
-      alert("Failed to submit counter proposal");
+      error("Failed to submit counter proposal");
     } finally {
       setSubmitting(false);
     }
   };
 
-  /* ---------------- COUNTER HELPERS ---------------- */
+
 
   const addMilestone = () => {
     setCounterMilestones([
@@ -109,7 +112,7 @@ export default function ContractDesc() {
     setCounterMilestones(counterMilestones.filter((_, idx) => idx !== i));
   };
 
-  /* ---------------- RENDER ---------------- */
+
 
   if (loading) {
     return <div className="text-white text-center p-10">Loading…</div>;
@@ -127,6 +130,12 @@ export default function ContractDesc() {
 
       <div className="max-w-4xl mx-auto p-4 space-y-8">
         <Header title="Contract Overview" />
+               <Card title="Tender/Project Summary">
+          <InfoRow label="Title" value={contract.tenderId
+.title} />
+          <InfoRow label="Location" value={contract.tenderId.location.placeName} />
+
+        </Card>
 
         <Card title="Contract Summary">
           <InfoRow label="Contract ID" value={contract.contractId} />
@@ -136,9 +145,11 @@ export default function ContractDesc() {
             label="Milestone Plan"
             value={contract.milestonePlanStatus}
           />
+          <InfoRow label="Allocation Date" value={new Date(contract.updatedAt).toLocaleDateString()} />
+
         </Card>
 
-        {/* ---------------- GOV PROPOSED ---------------- */}
+     
         {contract.milestonePlanStatus === "CONTRACTOR_REVIEW" && (
           <Card title="Government Proposed Milestones">
             <MilestoneList milestones={contract.proposedMilestones} />
@@ -165,7 +176,6 @@ export default function ContractDesc() {
           </Card>
         )}
 
-        {/* ---------------- COUNTER UI ---------------- */}
         {showCounterUI && (
           <Card title="Counter Milestone Proposal">
             <MilestoneEditor
@@ -197,7 +207,7 @@ export default function ContractDesc() {
           </Card>
         )}
 
-        {/* ---------------- FINALIZED ---------------- */}
+
         {contract.milestonePlanStatus === "FINALIZED" && (
           <Card title="Project Progress">
             <MilestoneList
@@ -246,7 +256,7 @@ const resolveMilestoneTimeState = (milestone) => {
   return milestone.status;
 };
 
-/* ---------------- UI ---------------- */
+
 
 const Header = ({ title }) => (
   <h1 className="text-3xl font-bold text-center">{title}</h1>
@@ -315,17 +325,15 @@ const MilestoneList = ({ milestones, openSubmissionModal }) => {
             <p>Amount: ₹{m.amount}</p>
             <p>Due: {new Date(m.dueDate).toLocaleDateString()}</p>
 
-         
             {timeState === "DUE" && (
               <div className="mt-3 text-yellow-400 text-sm font-semibold">
-                 Due date reached — submit proof within grace period
+                Due date reached — submit proof within grace period
               </div>
             )}
 
-           
             {timeState === "OVERDUE" && (
               <div className="mt-3 text-red-400 text-sm font-semibold">
-                 Deadline missed — delay reason required
+                Deadline missed — delay reason required
               </div>
             )}
 
@@ -399,12 +407,12 @@ function MilestoneSubmissionModal({ milestone, onClose }) {
 
   const handleSubmit = async () => {
     if (!notes) {
-      alert("Work notes are required");
+      warning("Work notes are required");
       return;
     }
 
     if (isOverdue && !delayReason) {
-      alert("Delay reason is required as deadline is missed");
+      warning("Delay reason is required as deadline is missed");
       return;
     }
 
@@ -423,10 +431,10 @@ function MilestoneSubmissionModal({ milestone, onClose }) {
       });
 
       if (!res.ok) throw new Error();
-      alert("Milestone submitted successfully");
+      success("Milestone submitted successfully");
       location.reload();
     } catch {
-      alert("Failed to submit milestone");
+      error("Failed to submit milestone");
     } finally {
       setSubmitting(false);
     }
@@ -465,7 +473,6 @@ function MilestoneSubmissionModal({ milestone, onClose }) {
           />
         )}
 
-      
         <input
           type="file"
           multiple
@@ -474,7 +481,6 @@ function MilestoneSubmissionModal({ milestone, onClose }) {
           className="w-full text-sm text-gray-300"
         />
 
-      
         <div className="flex gap-3 pt-2">
           <button
             onClick={onClose}

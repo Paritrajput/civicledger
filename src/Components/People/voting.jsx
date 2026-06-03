@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
+import { useNotification } from "@/Context/NotificationContext";
 
 const MilestoneTracker = ({ contractData }) => {
   const [milestones, setMilestones] = useState([]);
@@ -28,7 +29,7 @@ const MilestoneTracker = ({ contractData }) => {
         `/api/payment/get-payments/${contractData._id}`,
         {
           method: "GET",
-        }
+        },
       );
 
       const data = await response.json();
@@ -100,6 +101,7 @@ const MilestoneTracker = ({ contractData }) => {
   // }, [currentTime, milestones, contractId]);
 
   const [selectedPayment, setSelectedPayment] = useState(null);
+  const { success, warning, error: notifyError } = useNotification();
 
   // Open Modal & Set Selected Payment
   const openVoteModal = (payment) => {
@@ -110,7 +112,7 @@ const MilestoneTracker = ({ contractData }) => {
 
   // Submit Vote
   const handleSubmit = async () => {
-    if (!selectedPayment) return alert("No payment selected.");
+    if (!selectedPayment) return warning("No payment selected.");
 
     const formData = new FormData();
     formData.append("contractId", contractId);
@@ -128,17 +130,17 @@ const MilestoneTracker = ({ contractData }) => {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-        }
+        },
       );
       console.log(response);
       if (response.status == 200) {
-        alert("Vote submitted successfully!");
+        success("Vote submitted successfully!");
         setShowModal(false);
         getPayments();
       }
     } catch (err) {
       console.error("Vote submission failed:", err);
-      alert("Failed to submit vote.");
+      notifyError("Failed to submit vote.");
     }
   };
 
@@ -233,7 +235,9 @@ const MilestoneTracker = ({ contractData }) => {
             </h2>
 
             <div className="mb-6">
-              <label className="block mb-3 font-medium text-white">Decision:</label>
+              <label className="block mb-3 font-medium text-white">
+                Decision:
+              </label>
               <div className="flex space-x-4">
                 <label className="flex items-center cursor-pointer">
                   <input
@@ -262,7 +266,9 @@ const MilestoneTracker = ({ contractData }) => {
             </div>
 
             <div className="mb-6">
-              <label className="block mb-3 font-medium text-white">Review:</label>
+              <label className="block mb-3 font-medium text-white">
+                Review:
+              </label>
               <textarea
                 value={review}
                 onChange={(e) => setReview(e.target.value)}

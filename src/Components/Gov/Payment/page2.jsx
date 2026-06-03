@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { useNotification } from "@/Context/NotificationContext";
 
 export default function ContractTrackerPage() {
   const searchParams = useSearchParams();
@@ -21,6 +22,7 @@ export default function ContractTrackerPage() {
 
   const [overrideTarget, setOverrideTarget] = useState(null);
   const [overrideReason, setOverrideReason] = useState("");
+  const { success, error } = useNotification();
 
   /* ---------------- FETCH CONTRACT ---------------- */
 
@@ -30,8 +32,9 @@ export default function ContractTrackerPage() {
       const data = await res.json();
       if (!res.ok) throw new Error();
       setContract(data.contract);
+      console.log("Fetched contract:", data.contract);
     } catch {
-      alert("Failed to load contract");
+      error("Failed to load contract");
     } finally {
       setLoading(false);
     }
@@ -41,13 +44,7 @@ export default function ContractTrackerPage() {
     fetchContract();
   }, [contractId]);
 
-  
-
-  const finalizeMilestone = async ({
-    milestoneId,
-    action,
-    overrideReason,
-  }) => {
+  const finalizeMilestone = async ({ milestoneId, action, overrideReason }) => {
     setSubmitting(true);
     try {
       const res = await fetch("/api/contracts/milestones/finalize", {
@@ -64,18 +61,16 @@ export default function ContractTrackerPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      alert(data.message || "Decision applied");
+      success(data.message || "Decision applied");
       setOverrideTarget(null);
       setOverrideReason("");
       fetchContract();
     } catch (err) {
-      alert(err.message || "Action failed");
+      error(err.message || "Action failed");
     } finally {
       setSubmitting(false);
     }
   };
-
-
 
   if (loading) {
     return <CenteredText text="Loading contract..." />;
@@ -85,8 +80,7 @@ export default function ContractTrackerPage() {
     return <CenteredText text="Contract not found" error />;
   }
 
-  const remaining =
-    (contract.contractValue || 0) - (contract.paidAmount || 0);
+  const remaining = (contract.contractValue || 0) - (contract.paidAmount || 0);
 
   return (
     <div className="relative min-h-screen text-white pb-16">
@@ -108,14 +102,29 @@ export default function ContractTrackerPage() {
             value={
               contract.contractor?.contractorRating?.average
                 ? `${contract.contractor.contractorRating.average.toFixed(
-                    1
+                    1,
                   )} ⭐`
                 : "Not rated"
             }
           />
         </Card>
 
-        
+        <Card title="Tender Overview">
+          <InfoRow label="Title" value={contract.tenderId.title} />
+          <InfoRow label="Location" value={contract.location.placeName} />
+          {/* <InfoRow
+            label="Milestone Plan"
+            value={contract.milestonePlanStatus}
+          /> */}
+          {/* <InfoRow
+            label="Award Method"
+            value={
+              contract.awardMeta?.selectionType === "SYSTEM"
+                ? "System Recommended"
+                : "Manual Selection"
+            }
+          /> */}
+        </Card>
         <Card title="Contract Overview">
           <InfoRow label="Contract ID" value={contract.contractId} />
           <InfoRow label="Status" value={contract.status} />
@@ -133,20 +142,13 @@ export default function ContractTrackerPage() {
           />
         </Card>
 
-        
         <Card title="Financial Summary">
           <InfoRow
             label="Total Contract Value"
             value={`₹${contract.contractValue}`}
           />
-          <InfoRow
-            label="Paid Amount"
-            value={`₹${contract.paidAmount}`}
-          />
-          <InfoRow
-            label="Remaining Amount"
-            value={`₹${remaining}`}
-          />
+          <InfoRow label="Paid Amount" value={`₹${contract.paidAmount}`} />
+          <InfoRow label="Remaining Amount" value={`₹${remaining}`} />
           <ProgressBar
             value={contract.paidAmount}
             max={contract.contractValue}
@@ -227,8 +229,6 @@ export default function ContractTrackerPage() {
     </div>
   );
 }
-
-
 
 function MilestoneTimeline({ milestones, submitting, onAccept, onOverride }) {
   return (
@@ -316,8 +316,6 @@ function StatusBadge({ status }) {
     </span>
   );
 }
-
-
 
 function Background() {
   return (

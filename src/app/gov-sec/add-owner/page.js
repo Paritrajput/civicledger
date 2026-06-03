@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import axios from "axios";
 import { motion } from "framer-motion";
+import { useNotification } from "@/Context/NotificationContext";
 
 export default function Page2() {
   const { ownerId } = useParams();
@@ -34,7 +35,7 @@ export default function Page2() {
     e.preventDefault();
     try {
       await axios.post("/api/owners", { ...newOwner, addedBy: ownerId });
-      alert("Owner added successfully!");
+      success("Owner added successfully!");
       setNewOwner({ name: "", email: "", password: "" });
     } catch (error) {
       console.error("Error adding owner", error);

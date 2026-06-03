@@ -40,6 +40,53 @@ export default function ContractsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterLocation, setFilterLocation] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterMinValue, setFilterMinValue] = useState("");
+  const [filterMaxValue, setFilterMaxValue] = useState("");
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+
+  const clearFilters = () => {
+    setFilterLocation("");
+    setFilterStatus("");
+    setFilterMinValue("");
+    setFilterMaxValue("");
+    setFilterStartDate("");
+    setFilterEndDate("");
+  };
+
+  const filteredContracts = contracts.filter((contract) => {
+    const query = searchQuery.trim().toLowerCase();
+    const locationMatch =
+      !filterLocation.trim() ||
+      contract.location?.placeName
+        ?.toLowerCase()
+        ?.includes(filterLocation.toLowerCase());
+    const statusMatch = !filterStatus || contract.status === filterStatus;
+    const minValue = Number(filterMinValue) || 0;
+    const maxValue = Number(filterMaxValue) || 0;
+    const valueMatch =
+      (!filterMinValue || contract.contractValue >= minValue) &&
+      (!filterMaxValue || contract.contractValue <= maxValue);
+    const contractDate = contract.createdAt
+      ? new Date(contract.createdAt)
+      : null;
+    const startDate = filterStartDate ? new Date(filterStartDate) : null;
+    const endDate = filterEndDate ? new Date(filterEndDate) : null;
+    const dateMatch =
+      (!startDate || (contractDate && contractDate >= startDate)) &&
+      (!endDate || (contractDate && contractDate <= endDate));
+    const searchMatch =
+      !query ||
+      contract.contractId?.toLowerCase().includes(query) ||
+      contract.location?.placeName?.toLowerCase()?.includes(query);
+
+    return (
+      locationMatch && statusMatch && valueMatch && dateMatch && searchMatch
+    );
+  });
 
   useEffect(() => {
     const fetchContracts = async () => {
@@ -57,10 +104,6 @@ export default function ContractsPage() {
     fetchContracts();
   }, []);
 
-  const filteredContracts = contracts.filter((c) =>
-    `${c.contractId}`.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   return (
     <div className="relative min-h-screen text-white">
       <div className="fixed inset-0 -z-10 bg-gradient-to-t from-[#22043e] to-[#04070f]" />
@@ -75,15 +118,102 @@ export default function ContractsPage() {
           Government Contracts
         </motion.h1>
 
-        {/* Search */}
-        <div className="mb-8 max-w-2xl mx-auto">
+        {/* Search + Filters */}
+        <div className="mb-8 max-w-3xl mx-auto space-y-4">
           <input
             type="text"
-            placeholder="Search by contract ID..."
+            placeholder="Search by contract ID or location..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-6 py-3 bg-[#14162d8a] backdrop-blur-xl border border-gray-800 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-gray-600"
           />
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowFilters((prev) => !prev)}
+              className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white hover:bg-white/20 transition"
+            >
+              {showFilters ? "Hide Filters" : "Apply Filters"}
+            </button>
+          </div>
+
+          {showFilters && (
+            <div className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-5">
+              <div className="grid gap-4 md:grid-cols-4">
+                <label className="block text-sm text-gray-300">
+                  Location
+                  <input
+                    type="text"
+                    value={filterLocation}
+                    onChange={(e) => setFilterLocation(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-gray-800 bg-[#14162d8a] px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-gray-600"
+                  />
+                </label>
+                <label className="block text-sm text-gray-300">
+                  Status
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-gray-800 bg-[#14162d8a] px-4 py-3 text-white focus:outline-none focus:border-gray-600"
+                  >
+                    <option value="">All statuses</option>
+                    <option value="Active">Active</option>
+                    <option value="Suspended">Suspended</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Terminated">Terminated</option>
+                  </select>
+                </label>
+                <label className="block text-sm text-gray-300">
+                  Min Value
+                  <input
+                    type="number"
+                    value={filterMinValue}
+                    onChange={(e) => setFilterMinValue(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-gray-800 bg-[#14162d8a] px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-gray-600"
+                  />
+                </label>
+                <label className="block text-sm text-gray-300">
+                  Max Value
+                  <input
+                    type="number"
+                    value={filterMaxValue}
+                    onChange={(e) => setFilterMaxValue(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-gray-800 bg-[#14162d8a] px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-gray-600"
+                  />
+                </label>
+              </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                <label className="block text-sm text-gray-300">
+                  Start Date
+                  <input
+                    type="date"
+                    value={filterStartDate}
+                    onChange={(e) => setFilterStartDate(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-gray-800 bg-[#14162d8a] px-4 py-3 text-white focus:outline-none focus:border-gray-600"
+                  />
+                </label>
+                <label className="block text-sm text-gray-300">
+                  End Date
+                  <input
+                    type="date"
+                    value={filterEndDate}
+                    onChange={(e) => setFilterEndDate(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-gray-800 bg-[#14162d8a] px-4 py-3 text-white focus:outline-none focus:border-gray-600"
+                  />
+                </label>
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="w-full rounded-xl bg-white px-4 py-3 text-sm font-semibold text-black hover:bg-slate-200 transition"
+                  >
+                    Reset All Filters
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {error && <p className="text-red-400 text-center">{error}</p>}
@@ -96,15 +226,12 @@ export default function ContractsPage() {
             ))}
           </div>
         ) : filteredContracts.length === 0 ? (
-          <div className="text-center text-gray-400">
-            No contracts found
-          </div>
+          <div className="text-center text-gray-400">No contracts found</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredContracts.map((contract, index) => {
               const remaining =
-                (contract.contractValue || 0) -
-                (contract.paidAmount || 0);
+                (contract.contractValue || 0) - (contract.paidAmount || 0);
 
               const milestone =
                 milestoneBadge[contract.milestonePlanStatus] || {};
@@ -139,9 +266,7 @@ export default function ContractsPage() {
                     <p>Paid: ₹{contract.paidAmount}</p>
                     <p>
                       Remaining:{" "}
-                      <span className="font-medium">
-                        ₹{remaining}
-                      </span>
+                      <span className="font-medium">₹{remaining}</span>
                     </p>
                   </div>
 
@@ -164,8 +289,8 @@ export default function ContractsPage() {
                     onClick={() =>
                       router.push(
                         `/gov-sec/payment-desc?contract=${encodeURIComponent(
-                          JSON.stringify(contract)
-                        )}`
+                          JSON.stringify(contract),
+                        )}`,
                       )
                     }
                     className="mt-4 w-full bg-white text-black py-2 rounded-xl font-semibold hover:shadow-lg"

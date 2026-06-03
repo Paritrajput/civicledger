@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { BrowserProvider, Contract } from "ethers";
 import Tender from "@/contracts/TenderCreation";
 import { useGovUser } from "@/Context/govUser";
+import { useNotification } from "@/Context/NotificationContext";
 import { motion } from "framer-motion";
 
 export default function Page() {
@@ -34,6 +35,7 @@ export const MakeTender = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const { success: notifySuccess, error: notifyError } = useNotification();
 
   useEffect(() => {
     setCreator(user);
@@ -101,7 +103,7 @@ export const MakeTender = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      alert("Tender created successfully");
+      notifySuccess("Tender created successfully");
       setFormData({
         title: "",
         description: "",

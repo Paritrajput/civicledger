@@ -9,7 +9,7 @@ export async function POST() {
 
     const now = new Date();
 
-    // 1️⃣ Only evaluate OPEN tenders whose bidding is over
+    // Only evaluate OPEN tenders whose bidding is over
     const tenders = await Tender.find({
       status: "OPEN",
       bidClosingDate: { $lte: now },
@@ -23,7 +23,7 @@ export async function POST() {
     }
 
     for (const tender of tenders) {
-      // 2️⃣ Fetch only pending bids
+      // Fetch only pending bids
       const bids = await Bid.find({
         tenderId: tender._id,
         status: "Pending",
@@ -36,7 +36,7 @@ export async function POST() {
         continue;
       }
 
-      // 3️⃣ Normalization helpers
+      // Normalization helpers
       const bidAmounts = bids.map(b => b.bidAmount);
       const expYears = bids.map(b => b.experienceYears || 0);
       const ratings = bids.map(b => b.contractorRating || 0);
@@ -49,7 +49,7 @@ export async function POST() {
       let bestBid = null;
       let bestScore = Infinity;
 
-      // 4️⃣ Score each bid
+      // Score each bid
       for (const bid of bids) {
         const bidNorm =
           maxBid === minBid
@@ -81,13 +81,13 @@ export async function POST() {
         }
       }
 
-      // 5️⃣ Mark ONE system-recommended bid
+      // Mark ONE system-recommended bid
       if (bestBid) {
         bestBid.evaluation.systemRecommended = true;
         await bestBid.save();
       }
 
-      // 6️⃣ Close bidding (not award!)
+      // Close bidding (not award!)
       tender.status = "BIDDING_CLOSED";
       await tender.save();
     }
